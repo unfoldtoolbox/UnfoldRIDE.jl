@@ -1,0 +1,11 @@
+name = "UnfoldRIDE"
+uuid = "348b5554-d1f6-52bd-94b1-729601d351bf"
+authors = [
+    "Till Prölß",
+    " René Skukies",
+    " Benedikt Ehinger",
+]
+version = "0.1.0"
+
+[compat]
+julia = "1.10"

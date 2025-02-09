@@ -24,9 +24,7 @@ function findxcorrpeak(d,kernel;window=false)
 	#the purpose of this method is to find the peak of the cross correlation between the kernel and the data
     #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.
 	weightedkernel = window ? kernel .*  hanning(length(kernel)) : kernel
-    temp = filtering20(d, 1, 44)
-    #xc = xcorr.(filtering10(eachcol(d),1,44),Ref(weightedkernel); padmode = :none)
-    xc = xcorr.(eachcol(temp),Ref(weightedkernel); padmode = :none)
+    xc = xcorr.(eachcol(d),Ref(weightedkernel); padmode = :none)
     onset = length(kernel)
 	m = [findmax(x)[2] for x in xc] .- onset
 	return xc, m, onset
@@ -36,7 +34,7 @@ function filtering20(data, a, b)
     temp = copy(data)
     i = size(data,2)
     for i in size(data,3)
-        temp[1,:,i] = filtering10(temp[1,:,i], a, b)
+        temp[1,:,i] = dspfilter(temp[1,:,i], a, b)
     end
     return temp
 end
@@ -82,7 +80,7 @@ end
 # check for multiple "competing" peaks in the xcorrelation
 # any peak with a value > maximum * equality_threshold is considered a competing peak
 # the peak closest to the previous latency is chosen
-function heuristic3(latencies_df, latencies_df_old, xcorr, equality_threshold::Float64; onset::Int64 = 0)
+function heuristic3_pick_closest_xcorr_peak!(latencies_df, latencies_df_old, xcorr, equality_threshold::Float64; onset::Int64 = 0)
     @assert size(latencies_df,1) == size(xcorr,1) "latencies_df and xcorr must have the same size"
     @assert size(latencies_df_old,1) == size(latencies_df,1) "latencies_df and latencies_df_old must have the same size"
     @assert equality_threshold > 0 && equality_threshold <= 1 "equality_threshold must be between 0 and 1"
@@ -106,7 +104,7 @@ end
 # check if the xcorrelation is convex by searching for peaks
 # when no peak is found, the xcorrelation is considered convex and 
 # the latency is randomized with a gaussian distribution over the previous latencies
-function heuristic2(latencies_df, latencies_df_old, xcorr, rng = MersenneTwister(1234))
+function heuristic2_randommize_latency_on_convex_xcorr!(latencies_df, latencies_df_old, xcorr, rng = MersenneTwister(1234))
     @assert size(latencies_df,1) == size(xcorr,1) "latencies_df and xcorr must have the same size"
     ##you cannot calculate a standard deviation with less than 2 values
     standard_deviation = std(latencies_df_old.latency)
@@ -128,7 +126,7 @@ end
 
 # make sure the changes in the latencies are monoton
 # if a non monoton change is detected, revert the change and set the latency as fixed
-function heuristic1(latencies_df, latencies_df_old, latencies_df_old_old)
+function heuristic1_monoton_latency_changes!(latencies_df, latencies_df_old, latencies_df_old_old)
     for (i,row) in enumerate(eachrow(latencies_df))
         if row.fixed continue end
         prev_change = latencies_df_old.latency[i] - latencies_df_old_old.latency[i]
@@ -205,3 +203,18 @@ function filtering10(x::Vector{Float64}, a::Int, b::Int)
     
     return f
 end
+
+using DSP
+function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
+    @assert filter_at*2 < sampling_rate "Filter frequency must be less than half the sampling rate"
+    a = signal_to_filter
+
+    p = round(3.3 / (min(max(filter_at * 0.25, 2.0), sampling_rate/2 - filter_at)/sampling_rate))
+    order = Int(p)
+    order = Int(order ÷ 2 * 2) # we need even filter order
+
+    f = DSP.Filters.digitalfilter(Lowpass(filter_at/(sampling_rate/2)), FIRWindow(DSP.hanning(order)))
+    b = filtfilt(f,a)
+    return b
+end
+

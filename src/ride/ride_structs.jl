@@ -16,6 +16,7 @@
         heuristic2_rng = MersenneTwister(1234)
         heuristic3::Bool = true
         heuristic3_threshhold::Float64 = 0.9
+        filtering::Bool = true
     end
 
     abstract type ride_modus end

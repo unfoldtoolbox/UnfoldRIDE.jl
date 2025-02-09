@@ -38,7 +38,7 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts_without_c, cfg, ride_unfold)
+    c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts_without_c, cfg, ride_original)
 end
 
 # calculate and plot clean erps from the simulated data

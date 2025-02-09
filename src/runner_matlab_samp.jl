@@ -41,8 +41,6 @@ end
 begin 
     data, evts = import_data_from_hdf5("matlab_ride_samp_face.h5", 44)
     #plot_first_three_epochs_of_raw_data(data, evts);
-
-
 end
 
 #run the ride algorithm on the simulated data
@@ -63,7 +61,7 @@ begin
     )
 
     #run the ride algorithm
-    c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts, cfg, ride_unfold)
+    @run c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts, cfg, ride_unfold)
 end
 
 

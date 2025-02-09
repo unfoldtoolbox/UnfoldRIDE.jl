@@ -75,11 +75,14 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
         ## update C latencies via pattern matching
         #perform the pattern matching on the data with the S and R components subtracted
         data_subtracted_s_and_r = subtract_to_data(data_reshaped, [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)], cfg.sfreq)
+        if cfg.filtering
+            data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1,:], 5, 20)
+        end
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(data = data_subtracted_s_and_r, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
         n, data_epoched_subtracted_s_and_r = Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
         xcorr, m, onset = findxcorrpeak(data_epoched_subtracted_s_and_r[1,:,:],c_erp[1,:,1])
         c_latencies = reshape(m .- round(Int,  (c_range_adj[1] * cfg.sfreq)), (1,:))
-        for (i, row) in enumerate(eachrow(latencies_df))
+        for (i, row) in enumerate(eachrow(c_latencies_df))
             if(row.fixed) continue end
             row.latency = c_latencies[i]
         end
@@ -87,15 +90,15 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
 
         ## heuristics
         if cfg.heuristic1 && !isnothing(c_latencies_df_prev) && !isnothing(c_latencies_df_prev_prev)
-            heuristic1(c_latencies_df, c_latencies_df_prev, c_latencies_df_prev_prev)
+            heuristic1_monoton_latency_changes!(c_latencies_df, c_latencies_df_prev, c_latencies_df_prev_prev)
         end
 
         if cfg.heuristic2 && !isnothing(c_latencies_df_prev)
-            heuristic2(c_latencies_df, c_latencies_df_prev, xcorr, cfg.heuristic2_rng)
+            heuristic2_randommize_latency_on_convex_xcorr!(c_latencies_df, c_latencies_df_prev, xcorr, cfg.heuristic2_rng)
         end
 
         if cfg.heuristic3 && !isnothing(c_latencies_df_prev)
-            heuristic3(c_latencies_df, c_latencies_df_prev, xcorr, cfg.heuristic3_threshhold, onset=onset)
+            heuristic3_pick_closest_xcorr_peak!(c_latencies_df, c_latencies_df_prev, xcorr, cfg.heuristic3_threshhold, onset=onset)
         end
 
         c_latencies_df_prev_prev = deepcopy(c_latencies_df_prev)
@@ -135,5 +138,5 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
     end
     ##
 
-    return reshape(c_latencies_df.latency,(1,:)), s_erp, r_erp, c_erp
+    return reshape(c_latencies_df.latency,(1,:)), s_erp, r_erp, c_erp, figures_latency
 end

@@ -1,3 +1,19 @@
+using UnfoldRIDE
+using Test
+using Unfold
+using UnfoldSim
+using Statistics
+using SignalAnalysis
+using DataFrames
+using DataFramesMeta
+using Distributions
+using Random
+using Parameters
+using CairoMakie
+using DSP
+using FFTW
+using Peaks
+
 include("../src/ride/ride_shared_methods.jl")
 
 @testset "ride_shared_methods.jl" begin
@@ -28,7 +44,7 @@ include("../src/ride/ride_shared_methods.jl")
         latencies_df_old = DataFrame(latency = [70,30], fixed = [false, false])
         latencies_df_old_old = DataFrame(latency = [50,40], fixed = [false, false])
 
-        heuristic1(latencies_df, latencies_df_old, latencies_df_old_old)
+        heuristic1_monoton_latency_changes!(latencies_df, latencies_df_old, latencies_df_old_old)
 
         @test latencies_df.latency == [75,30]
         @test latencies_df.fixed == [false, true]
@@ -49,10 +65,10 @@ include("../src/ride/ride_shared_methods.jl")
 
         xc = [hanning(100) .* -1, hanning(100)]
 
-        rng = MersenneTwister(9876)
-        heuristic2(latencies_df, latencies_df_old, xc, rng)
+        rng = MersenneTwister(12345)
+        heuristic2_randommize_latency_on_convex_xcorr!(latencies_df, latencies_df_old, xc, rng)
 
-        @test latencies_df.latency == [64,100]
+        @test latencies_df.latency == [111,100]
         @test latencies_df.fixed == [true, false]
     end
 
@@ -78,7 +94,7 @@ include("../src/ride/ride_shared_methods.jl")
         latencies_df_old = DataFrame(latency = [201,200], fixed = [false, false])
         xc, xc_values, onset = findxcorrpeak(data_epoched[1,:,:], hanning(100))
 
-        heuristic3(latencies_df, latencies_df_old, xc, 0.8, onset=onset)
+        heuristic3_pick_closest_xcorr_peak!(latencies_df, latencies_df_old, xc, 0.8, onset=onset)
 
         @test latencies_df.latency == [300, 100]
         @test latencies_df.fixed == [false, false]
@@ -100,5 +116,26 @@ include("../src/ride/ride_shared_methods.jl")
         display(f)
         
         #@test result_zero[1,:] == zeros(length(result_zero[1,:]))
+    end
+
+    #test dspfilter
+    # this doesn't seem to work as expected. Does xcorr even make sense here?
+    # how can I turn the xcorr result into a score 0-100 ?
+    @testset "dspfilter" begin
+        data = vcat(zeros(100), hanning(100), hanning(100) .* -1)
+
+        noise = PinkNoise(;noiselevel = 0.1)
+        data_noisy = copy(data)
+        UnfoldSim.add_noise!(MersenneTwister(1234), noise, data_noisy)
+
+        data_filtered = dspfilter(data_noisy, 5, 100)
+
+        xcorr_result = xcorr(data, data_filtered; padmode = :none)  
+        xcorr_max = findmax(xcorr_result)
+        @test xcorr_max[1] > 50
+        @test (xcorr_max[2] > 295 && xcorr_max[2] < 305)
+
+        xcorr_terrible = xcorr(data, data_noisy; padmode = :none)
+        xcorr_max_terrible = findmax(xcorr_terrible)
     end
 end

@@ -47,23 +47,6 @@ begin
     plot_interim_results(data,  evts, results, cfg)
 end
 
-#plot the interim results
-#begin
-#    evts_s = @subset(evts, :event .== 'S')
-#    data_epoched = Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)[1]
-#    data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)[2]
-#    for (i,r) in enumerate(vcat(results.interim_results))
-#        f = plot_c_latency_estimation_four_epochs(data_epoched, r.c_latencies, r.c_erp)
-#        Label(f[0, :], text = "Estimated C latency, Iteration $(i-1)", halign = :center)
-#        display(f)
-#    end
-#    for (i,r) in enumerate(vcat(results.interim_results))
-#        f = plot_data_plus_component_erp(data_epoched, evts, r.s_erp, r.r_erp, r.c_erp, r.c_latencies, cfg)
-#        Label(f[0, :], text = "Calculated Erp, Iteration $(i-1)")
-#        display(f)
-#    end
-#end
-
 # calculate and plot clean erps from the simulated data
 # these represent the optimal result from the algorithm
 begin

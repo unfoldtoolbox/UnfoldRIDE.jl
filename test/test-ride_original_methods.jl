@@ -1,4 +1,5 @@
 include("../src/ride/ride_original_methods.jl")
+using UnicodePlots
 
 function createTestData()
     design = SingleSubjectDesign(;
@@ -36,11 +37,9 @@ end
 
         result_zero = subtract_to_data(data, [(evts, erp_to_subtract, range_test)], sfreq)
 
-        f = Figure()
-        lines(f[1,1], data[1,:])
-        lines(f[1,2], erp_to_subtract[1,:])
-        lines(f[2,1], result_zero[1,:])
-        display(f)
+        display(lineplot(data[1,:],title = "data" ))
+        display(lineplot(erp_to_subtract[1,:], title = "erp_to_subtract"))
+        display(lineplot(result_zero[1,:], title = "result after subtraction (should be zeros)"))
 
         @test result_zero[1,:] == zeros(length(result_zero[1,:]))
     end

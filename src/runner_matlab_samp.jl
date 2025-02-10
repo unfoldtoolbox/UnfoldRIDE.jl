@@ -1,6 +1,7 @@
 using Revise
 includet("./simulation/simulate_test_data.jl")
 includet("./UnfoldRIDE.jl")
+include("./plotting_methods.jl")
 
 using .UnfoldRIDE
 
@@ -46,7 +47,7 @@ end
 #run the ride algorithm on the simulated data
 begin
     #config for ride algorithm
-    cfg = ride_config(
+    cfg = RideConfig(
         sfreq = 1,
         s_range = [0, 250],
         r_range = [-150, 150],
@@ -57,17 +58,19 @@ begin
         iteration_limit = 5,
         heuristic1 = true,
         heuristic2 = true,
-        heuristic3 = true
+        heuristic3 = true,
+        save_interim_results = true
     )
 
     #run the ride algorithm
-    @run c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts, cfg, ride_unfold)
+    results = ride_algorithm(RideUnfold, data, evts, cfg)
+    plot_interim_results(data,  evts, results, cfg)
 end
 
 
 #test that the erp calculated on the original imported data and 
 #the erp calculated after concatenation and unfold.epoch() is identical
-if true == true
+if true == false
     channel = 44
     file_path = "matlab_ride_samp_face.h5"
 

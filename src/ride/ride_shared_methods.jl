@@ -48,6 +48,7 @@ function initial_peak_estimation(data_residuals_continous, evts_s, cfg)
     c_latencies = Matrix{Float64}(undef, 1, size(data_residuals_epoched, 3))
     for a in (1:size(data_residuals_epoched, 3))
         range = round.(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq) : round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+        #todo C_range still used here? Does this make sense?
         c_latencies[1,a] = (findmax(abs.(data_residuals_epoched[1,range,a])) .+ range[1] .- 1)[2] + round(Int, cfg.c_range[1] * cfg.sfreq)
     end
     latencies_df = DataFrame(latency = c_latencies[1,:], fixed = false)
@@ -67,15 +68,15 @@ function build_c_evts_table(latencies_df, evts, cfg)
     return evts_c
 end
 
-
-
-
-
-
-
-
-
-
+function save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
+    temp_result = RideResults(
+        s_erp = copy(s_erp),
+        r_erp = copy(r_erp),
+        c_erp = copy(c_erp),
+        c_latencies = copy(c_latencies_df.latency)
+    )
+    push!(results.interim_results, temp_result)
+end
 
 # check for multiple "competing" peaks in the xcorrelation
 # any peak with a value > maximum * equality_threshold is considered a competing peak
@@ -208,13 +209,15 @@ using DSP
 function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
     @assert filter_at*2 < sampling_rate "Filter frequency must be less than half the sampling rate"
     a = signal_to_filter
+    #for a in eachcol(signal_to_filter)
+        p = round(3.3 / (min(max(filter_at * 0.25, 2.0), sampling_rate/2 - filter_at)/sampling_rate))
+        order = Int(p)
+        order = Int(order ÷ 2 * 2) # we need even filter order
 
-    p = round(3.3 / (min(max(filter_at * 0.25, 2.0), sampling_rate/2 - filter_at)/sampling_rate))
-    order = Int(p)
-    order = Int(order ÷ 2 * 2) # we need even filter order
-
-    f = DSP.Filters.digitalfilter(Lowpass(filter_at/(sampling_rate/2)), FIRWindow(DSP.hanning(order)))
-    b = filtfilt(f,a)
+        f = DSP.Filters.digitalfilter(Lowpass(filter_at/(sampling_rate/2)), FIRWindow(DSP.hanning(order)))
+         b = filtfilt(f,a)
+    #end
+    
     return b
 end
 

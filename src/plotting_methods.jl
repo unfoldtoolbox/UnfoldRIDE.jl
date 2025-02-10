@@ -6,7 +6,7 @@ function plot_c_latency_estimation_four_epochs(data_epoched, c_latencies, c_erp)
         i = (a-1)*2 + b
         Axis(f[a,b],title = "Estimated C latency epoch $i")
         lines!(f[a,b],data_epoched[1,:,i]; color = "black")
-        y = c_latencies[1,i]:(c_latencies[1,i] + length(c_erp) - 1)
+        y = c_latencies[i]:(c_latencies[i] + length(c_erp) - 1)
         lines!(f[a,b],y,c_erp; color = "red")
         
         #vlines!(f[a,b],c_latencies[1,i] - round(Int, cfg.c_range[1] * cfg.sfreq); color = "blue")
@@ -32,7 +32,14 @@ function plot_first_epoch(cfg, evts_s, evts_r, evts_c, data_reshaped)
     display(f)
 end
 
-function plot_data_plus_component_erp(data_epoched, evts_s, evts_r, s_erp_temp, r_erp_temp, c_erp_temp, c_latencies, cfg)
+function plot_data_plus_component_erp(data_epoched, evts, s_erp, r_erp, c_erp, c_latencies, cfg)
+    evts_s = @subset(evts, :event .== 'S')
+    evts_r = @subset(evts, :event .== 'R')
+    
+    s_erp_temp = reshape(s_erp, (1,:,1))
+    r_erp_temp = reshape(r_erp, (1,:,1))
+    c_erp_temp = reshape(c_erp, (1,:,1))
+
     s_erp_padded = pad_erp_to_epoch_size(s_erp_temp, cfg.s_range, 0, cfg)
 
     #calculate the median latency of R from S onset
@@ -42,7 +49,7 @@ function plot_data_plus_component_erp(data_epoched, evts_s, evts_r, s_erp_temp, 
     r_erp_padded = pad_erp_to_epoch_size(r_erp_temp, cfg.r_range, r_median_latency_from_s_onset, cfg)
     
     c_median_latency = round(Int, median(c_latencies) + (cfg.epoch_range[1] * cfg.sfreq))
-    c_erp_padded = pad_erp_to_epoch_size(c_erp_temp, c_range_adjusted(cfg.c_range), c_median_latency, cfg)
+    c_erp_padded = pad_erp_to_epoch_size(c_erp_temp, [0, cfg.c_range[2] - cfg.c_range[1]], c_median_latency, cfg)
     raw_erp = mean(data_epoched, dims = 3)
     
     f = Figure()
@@ -90,4 +97,20 @@ function pad_erp_to_epoch_size(erp, component_range, median_latency, cfg)
     padding_front = zeros(Float64, 1, max(round(Int, median_latency + (component_range[1] * cfg.sfreq) - (cfg.epoch_range[1] * cfg.sfreq)), 0), 1)
     padding_back = zeros(Float64, 1, max(epoch_length - size(padding_front, 2) - size(erp, 2), 0), 1) 
     return hcat(padding_front, erp, padding_back)
+end
+
+function plot_interim_results(data, evts, results, cfg)
+    evts_s = @subset(evts, :event .== 'S')
+    data_epoched = Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)[1]
+    data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)[2]
+    for (i,r) in enumerate(vcat(results.interim_results))
+        f = plot_c_latency_estimation_four_epochs(data_epoched, r.c_latencies, r.c_erp)
+        Label(f[0, :], text = "Estimated C latency, Iteration $(i-1)", halign = :center)
+        display(f)
+    end
+    for (i,r) in enumerate(vcat(results.interim_results))
+        f = plot_data_plus_component_erp(data_epoched, evts, r.s_erp, r.r_erp, r.c_erp, r.c_latencies, cfg)
+        Label(f[0, :], text = "Calculated Erp, Iteration $(i-1)")
+        display(f)
+    end
 end

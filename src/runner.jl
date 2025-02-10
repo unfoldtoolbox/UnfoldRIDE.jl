@@ -1,8 +1,7 @@
 using Revise
 includet("./UnfoldRIDE.jl")
 includet("./simulation/simulate_test_data.jl")
-#includet("./ride/ride.jl")
-
+includet("./plotting_methods.jl")
 using .UnfoldRIDE
 
 #simulate data
@@ -18,7 +17,7 @@ end
 begin
     #ENV["JULIA_DEBUG"] = "UnfoldRIDE"
     #config for ride algorithm
-    cfg = ride_config(
+    cfg = RideConfig(
         sfreq = 100,
         s_range = [-0.2, 0.4],
         r_range = [0, 0.8],
@@ -29,7 +28,8 @@ begin
         iteration_limit = 5,
         heuristic1 = true,
         heuristic2 = true,
-        heuristic3 = true
+        heuristic3 = true,
+        save_interim_results = true
     )
 
     save_to_hdf5_ride_format(data, evts, cfg.epoch_range, cfg.epoch_event_name, 'R', cfg.sfreq)
@@ -38,8 +38,31 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    c_latencies, s_erp, c_erp, r_erp = ride_algorithm(data, evts_without_c, cfg, ride_original)
+    results = ride_algorithm(RideOriginal, data, evts_without_c, cfg)
+    s_erp = results.s_erp
+    r_erp = results.r_erp
+    c_erp = results.c_erp
+    c_latencies = results.c_latencies
+
+    plot_interim_results(data,  evts, results, cfg)
 end
+
+#plot the interim results
+#begin
+#    evts_s = @subset(evts, :event .== 'S')
+#    data_epoched = Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)[1]
+#    data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)[2]
+#    for (i,r) in enumerate(vcat(results.interim_results))
+#        f = plot_c_latency_estimation_four_epochs(data_epoched, r.c_latencies, r.c_erp)
+#        Label(f[0, :], text = "Estimated C latency, Iteration $(i-1)", halign = :center)
+#        display(f)
+#    end
+#    for (i,r) in enumerate(vcat(results.interim_results))
+#        f = plot_data_plus_component_erp(data_epoched, evts, r.s_erp, r.r_erp, r.c_erp, r.c_latencies, cfg)
+#        Label(f[0, :], text = "Calculated Erp, Iteration $(i-1)")
+#        display(f)
+#    end
+#end
 
 # calculate and plot clean erps from the simulated data
 # these represent the optimal result from the algorithm

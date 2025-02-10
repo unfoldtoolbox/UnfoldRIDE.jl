@@ -74,7 +74,7 @@ include("../src/ride/ride_shared_methods.jl")
 
     ## test heuristic3
     @testset "heuristic3" begin
-        cfg = ride_config(
+        cfg = RideConfig(
             sfreq = 100,
             c_range = [-0.4, 0.4],
             s_range = [0, 0],

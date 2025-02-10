@@ -11,7 +11,7 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
         if(row.fixed) continue end
         row.latency = c_latencies[i]
     end
-    
+
     return latencies_df, xc, onset
 end
 

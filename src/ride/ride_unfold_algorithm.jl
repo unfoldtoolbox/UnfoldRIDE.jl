@@ -1,9 +1,16 @@
-function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_unfold})
+function ride_algorithm(Modus::Type{RideUnfold}, data, evts, cfg::RideConfig)
     @debug "Running RIDE algorithm with cfg: $cfg"
     ## data_preparation
     data_reshaped = reshape(data, (1,:))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
+    results = RideResults(
+        s_erp = [],
+        r_erp = [],
+        c_erp = [],
+        c_latencies = []
+    )
+
 
     #epoch data with the cfg.epoch_range to see how many epochs we have
     #cut evts to match the determined number of epochs
@@ -51,13 +58,8 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_unfold})
     c_erp = median(data_residuals_c_epoched, dims = 3) 
     ##
 
-    ## prepare figure arrays
-    plot_first_epoch(cfg, evts_s, evts_r, evts_c, data_reshaped)
-    figures_latency = Array{Figure,1}()
-    push!(figures_latency, plot_c_latency_estimation_four_epochs(data_epoched, reshape(c_latencies_df.latency,(1,:)), c_erp[1,:,1]))
-    figures_erp = Array{Figure,1}()
-    push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, reshape(s_erp,(1,:,1)), reshape(r_erp,(1,:,1)), reshape(c_erp,(1,:,1)), reshape(c_latencies_df.latency,(1,:)), cfg))
-    ##
+    ## save interim results
+    if cfg.save_interim_results save_interim_results!(results, s_erp, r_erp, c_erp[1,:,1], c_latencies_df) end
 
     ## initial pattern matching with the first calculated c_erp
     c_latencies_df_prev_prev = nothing
@@ -65,11 +67,9 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_unfold})
     c_latencies_df, xcorr = unfold_pattern_matching(c_latencies_df, residuals_without_SR, c_erp[1,:,1], evts_s, cfg)
     evts_c = build_c_evts_table(c_latencies_df, evts_s, cfg)
     ##
-    
-    ## add plots after the first pattern matching
-    push!(figures_latency, plot_c_latency_estimation_four_epochs(data_epoched, reshape(c_latencies_df.latency,(1,:)), c_erp[1,:,1]))
-    push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, reshape(s_erp,(1,:,1)), reshape(r_erp,(1,:,1)), reshape(c_erp,(1,:,1)), reshape(c_latencies_df.latency,(1,:)), cfg))
-    ##
+
+    ## save interim results
+    if cfg.save_interim_results save_interim_results!(results, s_erp, r_erp, c_erp[1,:,1], c_latencies_df) end
 
 
     ## iteration start
@@ -81,7 +81,7 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_unfold})
 
         ## update C latencies via pattern matching
         if cfg.filtering
-            residue = dspfilter(residue, 5, 20)
+            residue = dspfilter(residue[1,:], 5, 20)
         end
         c_latencies_df, xcorr, onset = unfold_pattern_matching(c_latencies_df, residue, c_erp, evts_s, cfg)
         ##
@@ -103,25 +103,15 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_unfold})
         c_latencies_df_prev = deepcopy(c_latencies_df)
         evts_c = build_c_evts_table(c_latencies_df, evts_s, cfg)
         ##
-
-        ## add plots
-        push!(figures_latency, plot_c_latency_estimation_four_epochs(data_epoched, reshape(c_latencies_df.latency,(1,:)), c_erp))
-        push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, reshape(s_erp,(1,:,1)), reshape(r_erp,(1,:,1)), reshape(c_erp,(1,:,1)), reshape(c_latencies_df.latency,(1,:)), cfg))
-        ##
+        
+        ## save interim results
+        if cfg.save_interim_results save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df) end
     end
 
-    ## plotting
-    #plot the estimated c latencies for each iteration
-    for (i,f) in enumerate(figures_latency)
-        Label(f[0, :], text = "Estimated C latency, Iteration $(i-1)", halign = :center)
-        display(f)
-    end
-    #plot the calculated erp for each iteration
-    for (i,f) in enumerate(figures_erp)
-        Label(f[0, :], text = "Calculated Erp, Iteration $(i-1)")
-        display(f)
-    end
-    ##
+    results.s_erp = s_erp
+    results.r_erp = r_erp
+    results.c_erp = c_erp
+    results.c_latencies = c_latencies_df.latency
 
-    return reshape(c_latencies_df.latency,(1,:)), s_erp, r_erp, c_erp
+    return results
 end

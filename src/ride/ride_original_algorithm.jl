@@ -1,9 +1,15 @@
-function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original})
+function ride_algorithm(Modus::Type{RideOriginal}, data, evts, cfg::RideConfig)
     @debug "Running RIDE algorithm with cfg: $cfg"
     ## data_preparation
     data_reshaped = reshape(data, (1,:))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
+    results = RideResults(
+        s_erp = [],
+        r_erp = [],
+        c_erp = [],
+        c_latencies = []
+    )
 
     #epoch data with the cfg.epoch_range to see how many epochs we have
     #cut evts to match the determined number of epochs
@@ -44,13 +50,8 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
     c_erp = median(data_subtracted_s_and_r, dims = 3)
     ##
 
-    ## prepare figure arrays
-    plot_first_epoch(cfg, evts_s, evts_r, evts_c, data_reshaped)
-    figures_latency = Array{Figure,1}()
-    push!(figures_latency, plot_c_latency_estimation_four_epochs(data_epoched, reshape(c_latencies_df.latency,(1,:)), c_erp[1,:,1]))
-    figures_erp = Array{Figure,1}()
-    push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, s_erp, r_erp, c_erp, reshape(c_latencies_df.latency,(1,:)), cfg))
-    ##
+    ## save interim results
+    if cfg.save_interim_results save_interim_results!(results, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df) end
 
     c_latencies_df_prev_prev = nothing
     c_latencies_df_prev = nothing
@@ -106,10 +107,8 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
         evts_c = build_c_evts_table(c_latencies_df, evts_s, cfg)
         ##
 
-        ## add plots
-        push!(figures_latency, plot_c_latency_estimation_four_epochs(data_epoched, reshape(c_latencies_df.latency,(1,:)), c_erp[1,:,1]))
-        push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, s_erp, r_erp, c_erp, reshape(c_latencies_df.latency,(1,:)), cfg))
-        ##
+        ## save interim results
+        if cfg.save_interim_results save_interim_results!(results, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df) end
     end
 
     ##last iteration using the mean instead of median
@@ -122,21 +121,14 @@ function ride_algorithm(data, evts, cfg::ride_config, Modus::Type{ride_original}
     #calculate erp of R
     data_subtracted_s_and_c = subtract_to_data_epoched(data_reshaped, evts_r, cfg.r_range, [(evts_s, s_erp, cfg.s_range), (evts_c, c_erp, c_range_adj)], cfg.sfreq)
     r_erp = mean(data_subtracted_s_and_c, dims = 3)
-    push!(figures_erp, plot_data_plus_component_erp(data_epoched, evts_s, evts_r, s_erp, r_erp, c_erp, reshape(c_latencies_df.latency,(1,:)), cfg))
     ##
 
-    ## plotting
-    #plot the estimated c latencies for each iteration
-    for (i,f) in enumerate(figures_latency)
-        Label(f[0, :], text = "Original Ride: Estimated C latency, Iteration $(i-1)", halign = :center)
-        display(f)
-    end
-    #plot the calculated erp for each iteration
-    for (i,f) in enumerate(figures_erp)
-        Label(f[0, :], text = "Original Ride: Calculated Erp, Iteration $(i-1)")
-        display(f)
-    end
-    ##
+    ## save interim results
+    if cfg.save_interim_results save_interim_results!(results, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df) end
 
-    return reshape(c_latencies_df.latency,(1,:)), s_erp, r_erp, c_erp, figures_latency
+    results.s_erp = s_erp[1,:,1]
+    results.r_erp = r_erp[1,:,1]
+    results.c_erp = c_erp[1,:,1]
+    results.c_latencies = c_latencies_df.latency
+    return results
 end

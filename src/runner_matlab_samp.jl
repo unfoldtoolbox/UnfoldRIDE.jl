@@ -15,18 +15,20 @@ function import_data_from_hdf5(file_path, channel)
     data = Vector{Float64}()
     #fill the ride_matrix with the data
     offset = 800
-    for i in 1:offset
+    for i = 1:offset
         push!(data, 0)
     end
     for x in axes(import_data, 3)
         for y in axes(import_data, 1)
-            push!(data, import_data[y,channel,x])
+            push!(data, import_data[y, channel, x])
         end
-        for i in 1:offset
+        for i = 1:offset
             push!(data, 0)
         end
     end
-    s = Vector(1:length(rt)).* (offset + size(import_data,1)) .- size(import_data,1) .+ 50
+    s =
+        Vector(1:length(rt)) .* (offset + size(import_data, 1)) .- size(import_data, 1) .+
+        50
     rt = Int.(round.(rt ./ 2))
     rt = rt .+ s
     evts = DataFrame()
@@ -39,7 +41,7 @@ function import_data_from_hdf5(file_path, channel)
 end
 
 #import data
-begin 
+begin
     data, evts = import_data_from_hdf5("matlab_ride_samp_face.h5", 44)
     #plot_first_three_epochs_of_raw_data(data, evts);
 end
@@ -53,18 +55,18 @@ begin
         r_range = [-150, 150],
         c_range = [-200, 200],
         c_estimation_range = [0, 400],
-        epoch_range = [-49,500],
+        epoch_range = [-49, 500],
         epoch_event_name = 'S',
         iteration_limit = 5,
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = true
+        save_interim_results = true,
     )
 
     #run the ride algorithm
     results = ride_algorithm(RideUnfold, data, evts, cfg)
-    plot_interim_results(data,  evts, results, cfg)
+    plot_interim_results(data, evts, results, cfg)
 end
 
 
@@ -77,16 +79,16 @@ if true == false
     data, evts = import_data_from_hdf5("matlab_ride_samp_face.h5", channel)
     import_data = h5read(file_path, "/dataset_data")
 
-    orig_erp = median(import_data[:,channel,:], dims = 2)
-    f = lines(orig_erp[:,1], color = :red, linewidth = 3)
+    orig_erp = median(import_data[:, channel, :], dims = 2)
+    f = lines(orig_erp[:, 1], color = :red, linewidth = 3)
 
     evts_s = @subset(evts, :event .== 'S')
-    new_data_epoched = Unfold.epoch(data = data, tbl = evts_s, τ = [-49,500], sfreq = 1)[1]
+    new_data_epoched = Unfold.epoch(data = data, tbl = evts_s, τ = [-49, 500], sfreq = 1)[1]
     n, new_data_epoched = Unfold.drop_missing_epochs(evts_s, new_data_epoched)
     new_erp = median(new_data_epoched, dims = 3)
 
-    lines!(new_erp[1,:,1], color = :blue)
+    lines!(new_erp[1, :, 1], color = :blue)
     display(f)
 
-    @assert(orig_erp[:,1] == new_erp[1,:,1])
+    @assert(orig_erp[:, 1] == new_erp[1, :, 1])
 end

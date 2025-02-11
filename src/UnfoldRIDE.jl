@@ -1,5 +1,4 @@
 module UnfoldRIDE
-#using Revise
 
 using UnfoldSim
 using CairoMakie
@@ -19,13 +18,11 @@ using FFTW
 
 
 include("./ride/ride_structs.jl")
-#using .ride_structs
 include("./ride/ride_original_algorithm.jl")
 include("./ride/ride_original_methods.jl")
 include("./ride/ride_unfold_algorithm.jl")
 include("./ride/ride_unfold_methods.jl")
 include("./ride/ride_shared_methods.jl")
-#include("./ride/plotting_methods.jl")
 
 export ride_algorithm, ride_algorithm_unfold, RideConfig, RideOriginal, RideUnfold
 

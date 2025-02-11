@@ -66,61 +66,57 @@ end
 
 function default_sequence_design(simulation_inputs = simulation_inputs())
     # Define the design
-    design = SingleSubjectDesign(;
-        conditions = Dict(
-            :condition => ["car", "face"],
-            :continuous => range(0, 1, length = 2),
-        ),
-    ) |> x -> RepeatDesign(x, 20);
+    design =
+        SingleSubjectDesign(;
+            conditions = Dict(
+                :condition => ["car", "face"],
+                :continuous => range(0, 1, length = 2),
+            ),
+        ) |> x -> RepeatDesign(x, 20)
 
     sequence_design = SequenceDesign(design, "SCR")
 
     # Define the components
     s_component_p = LinearModelComponent(;
-        basis = p100(), 
-        formula = @formula(0 ~ 1), 
-        β = [simulation_inputs.s_beta]
-    );
+        basis = p100(),
+        formula = @formula(0 ~ 1),
+        β = [simulation_inputs.s_beta],
+    )
 
     s_component_n = LinearModelComponent(;
         basis = n170(),
         formula = @formula(0 ~ 1 + condition),
         β = [simulation_inputs.s_beta, simulation_inputs.s_continous],
-    );
+    )
 
     r_component = LinearModelComponent(;
         basis = p300(),
         formula = @formula(0 ~ 1 + continuous),
         β = [simulation_inputs.r_beta, simulation_inputs.r_continous],
-    );
+    )
 
     c_component = LinearModelComponent(;
         basis = p100(),
-        formula = @formula(0 ~ 1), 
+        formula = @formula(0 ~ 1),
         β = [simulation_inputs.c_beta],
-    );
-
-    onsetStimulus = UniformOnset(
-        width = simulation_inputs.s_width,
-        offset = simulation_inputs.s_offset,
     )
 
-    onsetC = UniformOnset(
-        width = simulation_inputs.c_width,
-        offset = simulation_inputs.c_offset,
-    )
+    onsetStimulus =
+        UniformOnset(width = simulation_inputs.s_width, offset = simulation_inputs.s_offset)
 
-    onsetR = UniformOnset(
-        width = simulation_inputs.r_width,
-        offset = simulation_inputs.r_offset,
-    )
+    onsetC =
+        UniformOnset(width = simulation_inputs.c_width, offset = simulation_inputs.c_offset)
 
-    multi_onset = MultiOnset(
-        onsetStimulus,
-        [onsetC, onsetR],
-    )
+    onsetR =
+        UniformOnset(width = simulation_inputs.r_width, offset = simulation_inputs.r_offset)
 
-    components = Dict('S' => [s_component_p, s_component_n], 'C' => [c_component], 'R' => [r_component])
+    multi_onset = MultiOnset(onsetStimulus, [onsetC, onsetR])
+
+    components = Dict(
+        'S' => [s_component_p, s_component_n],
+        'C' => [c_component],
+        'R' => [r_component],
+    )
 
     data, evts = simulate(
         simulation_inputs.rng,
@@ -141,7 +137,7 @@ function Base.size(design::DummySizeDesign)
     return design.size
 end
 
-function UnfoldSim.simulate_onsets(rng, onset::MultiOnset, simulation::Simulation) 
+function UnfoldSim.simulate_onsets(rng, onset::MultiOnset, simulation::Simulation)
     design_size = size(simulation.design)
     number_of_components = length(onset.component_to_stimulus_onsets)
     divided_design_size = Int(ceil(design_size / (number_of_components + 1)))
@@ -150,18 +146,25 @@ function UnfoldSim.simulate_onsets(rng, onset::MultiOnset, simulation::Simulatio
     component_offsets = Vector{Vector{Int}}()
 
     #calculate raw offsets
-    stimulus_offset = simulate_interonset_distances(rng, onset.stimulus_onset, DummySizeDesign(divided_design_size))
+    stimulus_offset = simulate_interonset_distances(
+        rng,
+        onset.stimulus_onset,
+        DummySizeDesign(divided_design_size),
+    )
     stimulus_offset_accumulated = accumulate(+, stimulus_offset, dims = 1, init = 1)
     for obj in onset.component_to_stimulus_onsets
-        push!(component_offsets, simulate_interonset_distances(rng, obj, DummySizeDesign(divided_design_size)))
+        push!(
+            component_offsets,
+            simulate_interonset_distances(rng, obj, DummySizeDesign(divided_design_size)),
+        )
     end
 
     #combine the stimulus offsets and component offsets into one vector
-    result = Vector{Int}()    
-    for i in 1:divided_design_size
+    result = Vector{Int}()
+    for i = 1:divided_design_size
         current_offset = stimulus_offset_accumulated[i]
         push!(result, current_offset)
-        for j in 1:length(component_offsets)
+        for j = 1:length(component_offsets)
             push!(result, current_offset + component_offsets[j][i])
         end
     end
@@ -178,31 +181,34 @@ end
 
 function save_to_hdf5_ride_format(data, evts, epoch_range, epoch_char, reaction_char, sfreq)
     evts_epoch_temp = @subset(evts, :event .== epoch_char)
-    data_epoched_temp, times = Unfold.epoch(data = data, tbl = evts_epoch_temp, τ = epoch_range, sfreq = sfreq)
-    evts_epoch, data_epoched = Unfold.drop_missing_epochs(evts_epoch_temp, data_epoched_temp)
+    data_epoched_temp, times =
+        Unfold.epoch(data = data, tbl = evts_epoch_temp, τ = epoch_range, sfreq = sfreq)
+    evts_epoch, data_epoched =
+        Unfold.drop_missing_epochs(evts_epoch_temp, data_epoched_temp)
 
     #grab the reaction times from the epoched data
-    evts_r = @subset(evts, :event .== reaction_char)[!,:latency][1:size(data_epoched, 3)]
-    reaction_times = evts_r - evts_epoch[!,:latency]
+    evts_r = @subset(evts, :event .== reaction_char)[!, :latency][1:size(data_epoched, 3)]
+    reaction_times = evts_r - evts_epoch[!, :latency]
 
     #matlab_ride format: Matrix{Float64} with TimeStep:Channel:Trial
-    ride_matrix = zeros(Float64, size(data_epoched, 2), size(data_epoched, 1), size(data_epoched, 3))
+    ride_matrix =
+        zeros(Float64, size(data_epoched, 2), size(data_epoched, 1), size(data_epoched, 3))
 
     #fill the ride_matrix with the data
     for x in axes(ride_matrix, 1)
         for y in axes(ride_matrix, 2)
             for z in axes(ride_matrix, 3)
-                ride_matrix[x,y,z] = data_epoched[y,x,z]
+                ride_matrix[x, y, z] = data_epoched[y, x, z]
             end
         end
     end
 
     #todo maybe create chanlocs and save them here
-    
+
     h5open("simulated_data.h5", "w") do file
         # Save the 3D array
         write(file, "dataset_data", ride_matrix)
-        
+
         # Save the vector rt
         write(file, "dataset_rt", Float64.(reaction_times))
     end

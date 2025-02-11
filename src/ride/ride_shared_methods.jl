@@ -181,8 +181,6 @@ function heuristic1_monoton_latency_changes!(
     end
 end
 
-
-
 function filtering(x::Vector{Float64}, a::Int, b::Int)
     # Ensure x is a column vector
     x = vec(x)
@@ -268,4 +266,3 @@ function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
 
     return b
 end
-

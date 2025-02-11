@@ -123,8 +123,6 @@ include("../src/ride/ride_shared_methods.jl")
     end
 
     #test dspfilter
-    # this doesn't seem to work as expected. Does xcorr even make sense here?
-    # how can I turn the xcorr result into a score 0-100 ?
     @testset "dspfilter" begin
         xcorr_max = []
         xcorr_max_noisy = []

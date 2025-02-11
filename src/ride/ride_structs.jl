@@ -1,7 +1,3 @@
-#module ride_structs
-#
-#    export ride_config, ride_modus, ride_original, ride_unfold
-#
 @with_kw struct RideConfig
     sfreq::Int
     s_range::Vector{Float64}
@@ -31,5 +27,3 @@ struct RideUnfold <: RideModus end
     c_erp::Vector{Float64}
     c_latencies::Vector{Int64}
 end
-
-#end

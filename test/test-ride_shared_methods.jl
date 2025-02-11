@@ -13,6 +13,7 @@ using CairoMakie
 using DSP
 using FFTW
 using Peaks
+using LinearAlgebra
 
 include("../src/ride/ride_shared_methods.jl")
 
@@ -22,17 +23,17 @@ include("../src/ride/ride_shared_methods.jl")
         d = UnfoldSim.pad_array(hanning(10),-35,0)
         kernel = hanning(20)
 
-        f = Figure()
-        lines(f[1,1],d)
-        lines!(kernel)
-        xc, m, onset = findxcorrpeak(d,kernel)
-        lines(f[1,2],xc[1])
 
-        lines(f[2,1],d)
-        vlines!([m[1]])
-        lines!(m[1].+(1:length(kernel)),kernel)
-
+        f = lineplot(d,title = "data + kernel" )
+        lineplot!(f,kernel)
         display(f)
+        xc, m, onset = findxcorrpeak(d,kernel)
+        display(lineplot(xc[1],title = "xcorr" ))
+
+        f = lineplot(d,title = "data + kernel corrected" )
+        lineplot!(f, vcat(zeros(m[1]),kernel))
+        display(f)
+
         using Test
         @test findxcorrpeak(d,kernel)[2] == [30]
         @test findxcorrpeak(d,kernel;window=true)[2] == [30]
@@ -100,42 +101,28 @@ include("../src/ride/ride_shared_methods.jl")
         @test latencies_df.fixed == [false, false]
     end
 
-    #test filtering10
-    @testset "filtering10" begin
-        #sfreq = 100
-        #data, evts = createTestData()
-        #range_test = [0.0, 1.0]
-        #data = reshape(data, (1,:))
-        data = reshape(vcat(zeros(100), hanning(100) .* -1), (1,:))
-
-        data_filtered = filtering10(data[1,:], 100, 0)
-
-        f = Figure()
-        lines(f[1,1], data_filtered[1,:], linewidth = 3)
-        lines!(f[1,1], data[1,:], color = :red)
-        display(f)
-        
-        #@test result_zero[1,:] == zeros(length(result_zero[1,:]))
-    end
-
     #test dspfilter
     # this doesn't seem to work as expected. Does xcorr even make sense here?
     # how can I turn the xcorr result into a score 0-100 ?
     @testset "dspfilter" begin
-        data = vcat(zeros(100), hanning(100), hanning(100) .* -1)
+        for i in 1:10000
+            data = vcat(zeros(100), hanning(100), hanning(100) .* -1)
 
-        noise = PinkNoise(;noiselevel = 0.1)
-        data_noisy = copy(data)
-        UnfoldSim.add_noise!(MersenneTwister(1234), noise, data_noisy)
+            noise = PinkNoise(;noiselevel = 0.1)
+            data_noisy = copy(data)
+            UnfoldSim.add_noise!(MersenneTwister(i), noise, data_noisy)
 
-        data_filtered = dspfilter(data_noisy, 5, 100)
+            data_filtered = dspfilter(data_noisy, 5, 100)
 
-        xcorr_result = xcorr(data, data_filtered; padmode = :none)  
-        xcorr_max = findmax(xcorr_result)
-        @test xcorr_max[1] > 50
-        @test (xcorr_max[2] > 295 && xcorr_max[2] < 305)
+            xcorr_result = xcorr(normalize(data), normalize(data_filtered); padmode = :none)  
+            xcorr_max = findmax(xcorr_result)
+            @test xcorr_max[1] > 0.9
+            @test (xcorr_max[2] > 295 && xcorr_max[2] < 305)
 
-        xcorr_terrible = xcorr(data, data_noisy; padmode = :none)
-        xcorr_max_terrible = findmax(xcorr_terrible)
+            xcorr_worse = xcorr(normalize(data), normalize(data_noisy); padmode = :none)
+            xcorr_max_worse = findmax(xcorr_worse)
+
+            @test xcorr_max_worse[1] < xcorr_max[1]
+        end
     end
 end

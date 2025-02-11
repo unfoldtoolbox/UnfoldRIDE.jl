@@ -14,6 +14,7 @@ using DSP
 using FFTW
 using Peaks
 using UnicodePlots
+using StableRNGs
 #=
 Don't add your tests to runtests.jl. Instead, create files named
 

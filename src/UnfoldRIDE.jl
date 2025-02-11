@@ -1,13 +1,8 @@
 module UnfoldRIDE
 
-using UnfoldSim
-using CairoMakie
 using Random
 using Unfold
-using UnfoldMakie
-using StableRNGs
 using Parameters
-using HDF5
 using DataFrames
 using DataFramesMeta
 using Statistics

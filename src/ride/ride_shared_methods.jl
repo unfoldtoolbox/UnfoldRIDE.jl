@@ -1,25 +1,3 @@
-
-#using Revise
-#includet("../simulation/simulate_test_data.jl")
-#includet("../ride/ride.jl")
-
-#using .Ride
-
-
-
-#using Test
-#using DSP
-#using UnfoldSim
-#using CairoMakie
-#
-#
-#using Statistics
-#using DataFrames
-#using DataFramesMeta
-#using Random
-#using Parameters
-#include("./ride_structs.jl")
-
 function findxcorrpeak(d, kernel; window = false)
     #the purpose of this method is to find the peak of the cross correlation between the kernel and the data
     #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.

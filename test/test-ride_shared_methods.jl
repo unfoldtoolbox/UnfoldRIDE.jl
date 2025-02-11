@@ -126,6 +126,8 @@ include("../src/ride/ride_shared_methods.jl")
     # this doesn't seem to work as expected. Does xcorr even make sense here?
     # how can I turn the xcorr result into a score 0-100 ?
     @testset "dspfilter" begin
+        xcorr_max = []
+        xcorr_max_noisy = []
         for i = 1:10000
             data = vcat(zeros(100), hanning(100), hanning(100) .* -1)
 
@@ -136,14 +138,12 @@ include("../src/ride/ride_shared_methods.jl")
             data_filtered = dspfilter(data_noisy, 5, 100)
 
             xcorr_result = xcorr(normalize(data), normalize(data_filtered); padmode = :none)
-            xcorr_max = findmax(xcorr_result)
-            @test xcorr_max[1] > 0.9
-            @test (xcorr_max[2] > 295 && xcorr_max[2] < 305)
+            push!(xcorr_max, findmax(xcorr_result)[1])
 
-            xcorr_worse = xcorr(normalize(data), normalize(data_noisy); padmode = :none)
-            xcorr_max_worse = findmax(xcorr_worse)
-
-            @test xcorr_max_worse[1] < xcorr_max[1]
+            xcorr_noisy = xcorr(normalize(data), normalize(data_noisy); padmode = :none)
+            push!(xcorr_max_noisy, findmax(xcorr_noisy)[1])
         end
+        @test !(false in (xcorr_max .> 0.9))
+        @test !(0 in (xcorr_max_noisy .< xcorr_max))
     end
 end

@@ -1,6 +1,5 @@
 # UnfoldRIDE
 
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://unfoldtoolbox.github.io/UnfoldRIDE.jl/stable)
 [![In development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://unfoldtoolbox.github.io/UnfoldRIDE.jl/dev)
 [![Build Status](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/workflows/Test/badge.svg)](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/actions)
 [![Test workflow status](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/actions/workflows/Test.yml?query=branch%3Amain)
@@ -17,8 +16,17 @@
 If you use UnfoldRIDE.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/main/CITATION.cff).
 
 ## Contributing
+Contributions are very welcome. These could be typos, bugreports, feature-requests, speed-optimization, new solvers, better code, better documentation.
 
-If you want to make contributions of any kind, please first that a look into our [contributing guide directly on GitHub](docs/src/90-contributing.md) or the [contributing page on the website](https://unfoldtoolbox.github.io/UnfoldRIDE.jl/dev/90-contributing/)
+### How-to Contribute
+
+You are very welcome to raise issues and start pull requests!
+
+### Adding Documentation
+
+1. We recommend to write a Literate.jl document and place it in `docs/literate/FOLDER/FILENAME.jl` with `FOLDER` being `HowTo`, `Explanation`, `Tutorial` or `Reference` ([recommended reading on the 4 categories](https://documentation.divio.com/)).
+2. Literate.jl converts the `.jl` file to a `.md` automatically and places it in `docs/src/generated/FOLDER/FILENAME.md`.
+3. Edit [make.jl](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/main/docs/make.jl) with a reference to `docs/src/generated/FOLDER/FILENAME.md`.
 
 ---
 

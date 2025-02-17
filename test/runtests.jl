@@ -1,5 +1,20 @@
 using UnfoldRIDE
 using Test
+using Unfold
+using UnfoldSim
+using Statistics
+using SignalAnalysis
+using DataFrames
+using DataFramesMeta
+using Distributions
+using Random
+using Parameters
+using DSP
+using FFTW
+using Peaks
+using UnicodePlots
+using StableRNGs
+using LinearAlgebra
 
 #=
 Don't add your tests to runtests.jl. Instead, create files named

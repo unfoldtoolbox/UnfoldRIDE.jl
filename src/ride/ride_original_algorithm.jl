@@ -1,4 +1,4 @@
-function ride_algorithm(Modus::Type{RideOriginal}, data, evts, cfg::RideConfig)
+function ride_algorithm(Modus::Type{OriginalRide}, data, evts, cfg::RideConfig)
     @debug "Running RIDE algorithm with cfg: $cfg"
     ## data_preparation
     data_reshaped = reshape(data, (1, :))

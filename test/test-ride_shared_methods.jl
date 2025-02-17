@@ -1,20 +1,3 @@
-using UnfoldRIDE
-using Test
-using Unfold
-using UnfoldSim
-using Statistics
-using SignalAnalysis
-using DataFrames
-using DataFramesMeta
-using Distributions
-using Random
-using Parameters
-using CairoMakie
-using DSP
-using FFTW
-using Peaks
-using LinearAlgebra
-
 include("../src/ride/ride_shared_methods.jl")
 
 @testset "ride_shared_methods.jl" begin

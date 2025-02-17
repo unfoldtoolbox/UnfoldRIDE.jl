@@ -66,7 +66,7 @@ begin
     )
 
     #run the ride algorithm
-    results = ride_algorithm(RideUnfold, data, evts, cfg)
+    results = ride_algorithm(UnfoldRide, data, evts, cfg)
     plot_interim_results(data, evts, results, cfg)
 end
 

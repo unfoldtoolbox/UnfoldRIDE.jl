@@ -32,7 +32,7 @@ using LinearAlgebra
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(RideUnfold, data, evts_without_c, cfg)
+        results = ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
     end
 
     # calculate and plot clean erps from the simulated data
@@ -123,7 +123,7 @@ end
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(RideOriginal, data, evts_without_c, cfg)
+        results = ride_algorithm(OriginalRide, data, evts_without_c, cfg)
     end
 
     # calculate and plot clean erps from the simulated data

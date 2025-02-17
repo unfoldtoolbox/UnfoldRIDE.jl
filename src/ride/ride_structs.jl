@@ -16,9 +16,9 @@
     save_interim_results::Bool = false
 end
 
-abstract type RideModus end
-struct RideOriginal <: RideModus end
-struct RideUnfold <: RideModus end
+abstract type ModusRide end
+struct OriginalRide <: ModusRide end
+struct UnfoldRide <: ModusRide end
 
 @with_kw mutable struct RideResults
     interim_results::Vector{RideResults} = Vector{RideResults}()

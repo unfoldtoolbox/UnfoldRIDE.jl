@@ -1,11 +1,11 @@
 using Revise
-includet("../../src/UnfoldRIDE.jl")
-includet("../simulate_test_data.jl")
-includet("../plotting_methods.jl")
+includet("../src/UnfoldRIDE.jl")
+includet("../test/simulate_test_data.jl")
+includet("./plotting_methods.jl")
 using .UnfoldRIDE
 using CairoMakie
 using StableRNGs
-
+using BenchmarkTools
 #simulate data
 begin
     sim_inputs = simulation_inputs()
@@ -32,7 +32,7 @@ begin
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = true,
+        save_interim_results = false,
     )
 
     save_to_hdf5_ride_format(
@@ -108,4 +108,10 @@ begin
     Label(f[0, :], text = "Simulated clean ERPs")
     display(f)
     save("actual_erps.png", f)
+end
+
+begin
+    @benchmark ride_algorithm(RideUnfold, data, evts_without_c, cfg)
+
+    @benchmark ride_algorithm(RideOriginal, data, evts_without_c, cfg)
 end

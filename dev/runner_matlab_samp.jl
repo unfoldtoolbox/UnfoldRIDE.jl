@@ -51,7 +51,7 @@ end
 begin
     #config for ride algorithm
     cfg = RideConfig(
-        sfreq = 1,
+        sfreq = 500,
         s_range = [0, 250],
         r_range = [-150, 150],
         c_range = [-200, 200],

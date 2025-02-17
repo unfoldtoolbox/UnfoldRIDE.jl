@@ -24,7 +24,7 @@ end
 
 
 function unfold_decomposition(data, evts_with_c, cfg)
-    #unfold deconvolution
+    #unfold deconvolution; TODO: make the fit more general, i.e. let the user provide the model structure
     m = fit(
         UnfoldModel,
         [

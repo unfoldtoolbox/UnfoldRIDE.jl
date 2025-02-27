@@ -18,7 +18,15 @@ function filtering20(data, a, b)
 end
 
 
-function initial_peak_estimation(data_residuals_continous, evts_s, cfg)
+function initial_peak_estimation(data_residuals_continous::Array{Float64,2}, evts_s, cfg)
+    latencies_df_vector = Vector()
+    for i in 1:size(data_residuals_continous, 1)
+        push!(latencies_df_vector, initial_peak_estimation(data_residuals_continous[i, :], evts_s, cfg))
+    end
+    return latencies_df_vector
+end
+
+function initial_peak_estimation(data_residuals_continous::Array{Float64}, evts_s, cfg)
     ## initial C latency estimation
     data_residuals_epoched, times = Unfold.epoch(
         data = data_residuals_continous,
@@ -48,9 +56,20 @@ function c_range_adjusted(c_range::Vector{Float64})
     return [0, c_range[2] - c_range[1]]
 end
 
+function build_c_evts_table(latencies_df_vector::Vector, evts, cfg)
+    #@assert size(latencies_df_vector, 1) > 1 "latencies_df_vector must have at least 2 elements"
+    latencies_mean = deepcopy(latencies_df_vector[1])
+    for i in range(2,size(latencies_df_vector, 1))
+        latencies_mean.latency .+= latencies_df_vector[i].latency
+    end
+    latencies_mean.latency ./= size(latencies_df_vector, 1)
+    return build_c_evts_table(latencies_mean, evts, cfg)
+end
+
 #Create C event table by copying S and adding the estimated latency
-function build_c_evts_table(latencies_df, evts, cfg)
+function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
     evts_s = @subset(evts, :event .== 'S')
+    evts_s = first(evts_s, size(latencies_df, 1))
     evts_c = copy(evts_s)
     evts_c[!, :latency] .=
         round.(
@@ -63,11 +82,16 @@ function build_c_evts_table(latencies_df, evts, cfg)
 end
 
 function save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
+    c_latencies = Vector()
+    for i in axes(c_latencies_df, 1)
+        push!(c_latencies, c_latencies_df[i].latency)
+        @show i
+    end
     temp_result = RideResults(
         s_erp = copy(s_erp),
         r_erp = copy(r_erp),
         c_erp = copy(c_erp),
-        c_latencies = copy(c_latencies_df.latency),
+        c_latencies = copy(c_latencies),
     )
     push!(results.interim_results, temp_result)
 end
@@ -111,7 +135,7 @@ end
 # check if the xcorrelation is convex by searching for peaks
 # when no peak is found, the xcorrelation is considered convex and 
 # the latency is randomized with a gaussian distribution over the previous latencies
-function heuristic2_randommize_latency_on_convex_xcorr!(
+function heuristic2_randomize_latency_on_convex_xcorr!(
     latencies_df,
     latencies_df_old,
     xcorr,
@@ -123,7 +147,7 @@ function heuristic2_randommize_latency_on_convex_xcorr!(
     if (isnan(standard_deviation))
         standard_deviation = 1
     end
-    normal_distribution = Normal(standard_deviation, mean(latencies_df_old.latency))
+    normal_distribution = Normal(mean(latencies_df_old.latency), standard_deviation)
     for (i, row) in enumerate(eachrow(latencies_df))
         if row.fixed
             continue
@@ -222,7 +246,6 @@ function filtering10(x::Vector{Float64}, a::Int, b::Int)
     return f
 end
 
-using DSP
 function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
     @assert filter_at * 2 < sampling_rate "Filter frequency must be less than half the sampling rate"
     a = signal_to_filter

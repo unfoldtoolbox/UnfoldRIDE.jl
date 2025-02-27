@@ -74,7 +74,6 @@ include("../src/ride/ride_shared_methods.jl")
             r_range = [0, 0],
             c_estimation_range = [0.2, 1.2],
             epoch_range = [-0.3, 1.6],
-            epoch_event_name = 'S',
         )
         #identical epochs with perfect match at 100 and subpar match at 300
         epoch1 = reshape(

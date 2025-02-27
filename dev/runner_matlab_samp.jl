@@ -57,7 +57,6 @@ begin
         c_range = [-200, 200],
         c_estimation_range = [0, 400],
         epoch_range = [-49, 500],
-        epoch_event_name = 'S',
         iteration_limit = 5,
         heuristic1 = true,
         heuristic2 = true,
@@ -66,7 +65,7 @@ begin
     )
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldRide, data, evts, cfg)
+    results = ride_algorithm(UnfoldModeRide, data, evts, cfg)
     plot_interim_results(data, evts, results, cfg)
 end
 

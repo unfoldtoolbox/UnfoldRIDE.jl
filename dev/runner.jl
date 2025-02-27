@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate("./dev")
+
 using Revise
 includet("../src/UnfoldRIDE.jl")
 includet("../test/simulate_test_data.jl")
@@ -27,7 +30,6 @@ begin
         c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
         c_estimation_range = [-0.1, 0.9],
         epoch_range = [-0.3, 1.6],
-        epoch_event_name = 'S',
         iteration_limit = 5,
         heuristic1 = true,
         heuristic2 = true,
@@ -39,7 +41,7 @@ begin
         data,
         evts,
         cfg.epoch_range,
-        cfg.epoch_event_name,
+        'S',
         'R',
         cfg.sfreq,
     )
@@ -48,7 +50,7 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
+    results = ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
     s_erp = results.s_erp
     r_erp = results.r_erp
     c_erp = results.c_erp
@@ -111,7 +113,50 @@ begin
 end
 
 begin
-    @benchmark ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
+    @benchmark ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
 
-    @benchmark ride_algorithm(OriginalRide, data, evts_without_c, cfg)
+    @benchmark ride_algorithm(ClassicRIDE , data, evts_without_c, cfg)
+end
+
+#simulate data
+begin
+    sim_inputs = simulation_inputs()
+    sim_inputs.noise = PinkNoise()
+    data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
+        simulate_default_plus_clean(sim_inputs)
+end
+
+begin
+    #ENV["JULIA_DEBUG"] = "UnfoldRIDE"
+    #config for ride algorithm
+    cfg = RideConfig(
+        sfreq = 100,
+        s_range = [-0.2, 0.4],
+        r_range = [0, 0.8],
+        c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
+        c_estimation_range = [-0.1, 0.9],
+        epoch_range = [-0.3, 1.6],
+        iteration_limit = 5,
+        heuristic1 = true,
+        heuristic2 = true,
+        heuristic3 = true,
+        save_interim_results = false,
+    )
+
+    noise = PinkNoise(; noiselevel = 0.1)
+    data_channel1 = reshape(deepcopy(data), (1,:))
+    UnfoldSim.add_noise!(MersenneTwister(1234), noise, data_channel1)
+    data_channel2 = reshape(deepcopy(data), (1,:))
+    UnfoldSim.add_noise!(MersenneTwister(5678), noise, data_channel2)
+    data_channel3 = reshape(deepcopy(data), (1,:))
+    UnfoldSim.add_noise!(MersenneTwister(1278), noise, data_channel3)
+    data_channels = vcat(data_channel1, data_channel2, data_channel3)
+
+    #remove the C events from the evts table, these will be estimated by the ride algorithm
+    evts_without_c = @subset(evts, :event .!= 'C')
+
+    #run the ride algorithm
+    results = ride_algorithm(UnfoldModeRIDE, data_channels, evts_without_c, cfg)
+
+
 end

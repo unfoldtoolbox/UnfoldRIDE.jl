@@ -20,7 +20,6 @@ using LinearAlgebra
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
             c_estimation_range = [-0.1, 0.9],
             epoch_range = [-0.3, 1.6],
-            epoch_event_name = 'S',
             iteration_limit = 5,
             heuristic1 = true,
             heuristic2 = true,
@@ -32,7 +31,7 @@ using LinearAlgebra
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
+        results = ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
     end
 
     # calculate and plot clean erps from the simulated data
@@ -111,7 +110,6 @@ end
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
             c_estimation_range = [-0.1, 0.9],
             epoch_range = [-0.3, 1.6],
-            epoch_event_name = 'S',
             iteration_limit = 5,
             heuristic1 = true,
             heuristic2 = true,
@@ -123,7 +121,7 @@ end
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(OriginalRide, data, evts_without_c, cfg)
+        results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
     end
 
     # calculate and plot clean erps from the simulated data
@@ -180,5 +178,60 @@ end
         c_xcorr = xcorr(normalize(erp_clean_c[1, :, 1]), normalize(results.c_erp))
         c_max = findmax(c_xcorr)
         @test c_max[1] > 0.9
+    end
+end
+
+@testset "alrogithm-keywordargs" begin
+    #simulate data
+    begin
+        sim_inputs = simulation_inputs()
+        sim_inputs.noise = PinkNoise(; noiselevel = 1)
+        data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
+            simulate_default_plus_clean(sim_inputs)
+    end
+
+    begin
+        #ENV["JULIA_DEBUG"] = "UnfoldRIDE"
+        #config for ride algorithm
+        cfg = RideConfig(
+            sfreq = 100,
+            s_range = [-0.2, 0.4],
+            r_range = [0, 0.8],
+            c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
+            c_estimation_range = [-0.1, 0.9],
+            epoch_range = [-0.3, 1.6],
+            iteration_limit = 5,
+            heuristic1 = true,
+            heuristic2 = true,
+            heuristic3 = true,
+            save_interim_results = false,
+        )
+
+        #remove the C events from the evts table, these will be estimated by the ride algorithm
+        evts_without_c = @subset(evts, :event .!= 'C')
+
+        #run the ride algorithm
+        results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
+
+        #run the ride algorithm with keyword arguments
+        results_kw = ride_algorithm(
+            ClassicRIDE,
+            data,
+            evts_without_c,
+            cfg;
+            sfreq = 100,
+            s_range = [-0.2, 0.4],
+            r_range = [0, 0.8],
+            c_range = [-0.4, 0.4],
+            c_estimation_range = [-0.1, 0.9],
+            epoch_range = [-0.3, 1.6],
+            iteration_limit = 5,
+            heuristic1 = true,
+            heuristic2 = true,
+            heuristic3 = true,
+            save_interim_results = false,
+        )
+
+        @test results == results_kw
     end
 end

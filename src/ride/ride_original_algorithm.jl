@@ -1,4 +1,15 @@
-function ride_algorithm(Modus::Type{OriginalRide}, data, evts, cfg::RideConfig)
+ride_algorithm(Modus::Type{ClassicRIDE}, data, evts; kwargs...) =
+    ride_algorithm(Modus, data, evts, RideConfig(kwargs...))
+
+function ride_algorithm(Modus::Type{ClassicRIDE}, data::Array{Float64,2}, evts, cfg::RideConfig)
+    r = Vector()
+    for i in range(1,size(data, 1))
+        push!(r, ride_algorithm(Modus, data[i,:], evts, cfg))
+    end
+    return r
+end
+
+function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, cfg::RideConfig)
     @debug "Running RIDE algorithm with cfg: $cfg"
     ## data_preparation
     data_reshaped = reshape(data, (1, :))
@@ -148,7 +159,7 @@ function ride_algorithm(Modus::Type{OriginalRide}, data, evts, cfg::RideConfig)
         end
 
         if cfg.heuristic2 && !isnothing(c_latencies_df_prev)
-            heuristic2_randommize_latency_on_convex_xcorr!(
+            heuristic2_randomize_latency_on_convex_xcorr!(
                 c_latencies_df,
                 c_latencies_df_prev,
                 xcorr,

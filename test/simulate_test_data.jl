@@ -70,9 +70,9 @@ function default_sequence_design(simulation_inputs = simulation_inputs())
         SingleSubjectDesign(;
             conditions = Dict(
                 :condition => ["car", "face"],
-                :continuous => range(0, 1, length = 2),
+                :continuous => range(0, 1, length = 10),
             ),
-        ) |> x -> RepeatDesign(x, 20)
+        ) |> x -> RepeatDesign(x, 4)
 
     sequence_design = SequenceDesign(design, "SCR")
 

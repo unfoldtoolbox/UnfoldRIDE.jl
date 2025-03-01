@@ -1,7 +1,10 @@
+import Pkg
+Pkg.activate("./dev")
+
 using Revise
-includet("../../src/UnfoldRIDE.jl")
-includet("../simulate_test_data.jl")
-includet("../plotting_methods.jl")
+includet("../src/UnfoldRIDE.jl")
+includet("../test/simulate_test_data.jl")
+includet("./plotting_methods.jl")
 using .UnfoldRIDE
 using CairoMakie
 using StableRNGs
@@ -43,7 +46,7 @@ end
 
 #import data
 begin
-    data, evts = import_data_from_hdf5("test/manual/matlab_ride_samp_face.h5", 44)
+    data, evts = import_data_from_hdf5("dev/matlab_ride_samp_face.h5", 44)
     #plot_first_three_epochs_of_raw_data(data, evts);
 end
 
@@ -51,7 +54,7 @@ end
 begin
     #config for ride algorithm
     cfg = RideConfig(
-        sfreq = 500,
+        sfreq = 1,
         s_range = [0, 250],
         r_range = [-150, 150],
         c_range = [-200, 200],
@@ -66,7 +69,7 @@ begin
     )
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldRide, data, evts, cfg)
+    results = ride_algorithm(OriginalRide, data, evts, cfg)
     plot_interim_results(data, evts, results, cfg)
 end
 
@@ -75,9 +78,9 @@ end
 #the erp calculated after concatenation and unfold.epoch() is identical
 if true == false
     channel = 44
-    file_path = "matlab_ride_samp_face.h5"
+    file_path = "dev/matlab_ride_samp_face.h5"
 
-    data, evts = import_data_from_hdf5("matlab_ride_samp_face.h5", channel)
+    data, evts = import_data_from_hdf5(file_path, channel)
     import_data = h5read(file_path, "/dataset_data")
 
     orig_erp = median(import_data[:, channel, :], dims = 2)

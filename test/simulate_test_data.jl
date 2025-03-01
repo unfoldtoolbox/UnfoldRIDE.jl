@@ -96,7 +96,7 @@ function default_sequence_design(simulation_inputs = simulation_inputs())
     )
 
     c_component = LinearModelComponent(;
-        basis = p100(),
+        basis = p100(), #vcat(p100().*0.3,zeros(7))+vcat(zeros(7),p100()), #
         formula = @formula(0 ~ 1),
         β = [simulation_inputs.c_beta],
     )

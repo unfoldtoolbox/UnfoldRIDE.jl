@@ -72,7 +72,7 @@ function plot_data_plus_component_erp(
     s = lines!(s_erp_padded[1, :, 1]; color = "blue")
     c = lines!(c_erp_padded[1, :, 1]; color = "red")
     r = lines!(r_erp_padded[1, :, 1]; color = "green")
-    Legend(f[1, 1], [raw, s, r, c], ["Raw ERP", "S ERP", "R ERP", "C ERP"])
+    Legend(f[1, 1], [raw, s, r, c], ["ERP", "S", "R", "C"])
     return f
 end
 
@@ -130,6 +130,7 @@ function plot_interim_results(data, evts, results, cfg)
         f = plot_c_latency_estimation_four_epochs(data_epoched, r.c_latencies, r.c_erp)
         Label(f[0, :], text = "Estimated C latency, Iteration $(i-1)", halign = :center)
         display(f)
+        save("interim_results_latency.png", f)
     end
     for (i, r) in enumerate(vcat(results.interim_results))
         f = plot_data_plus_component_erp(
@@ -141,7 +142,8 @@ function plot_interim_results(data, evts, results, cfg)
             r.c_latencies,
             cfg,
         )
-        Label(f[0, :], text = "Calculated Erp, Iteration $(i-1)")
+        Label(f[0, :], text = "Calculated Components")#, Iteration $(i-1)")
         display(f)
+        save("interim_results_erp.png", f)
     end
 end

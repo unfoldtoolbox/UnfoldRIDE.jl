@@ -1,3 +1,6 @@
+import Pkg
+Pkg.activate("./dev")
+
 using Revise
 includet("../src/UnfoldRIDE.jl")
 includet("../test/simulate_test_data.jl")
@@ -10,6 +13,11 @@ using BenchmarkTools
 begin
     sim_inputs = simulation_inputs()
     sim_inputs.noise = PinkNoise(; noiselevel = 1)
+    #sim_inputs.c_width = 60
+    #sim_inputs.r_offset = 0
+    #sim_inputs.c_beta = -5
+    #sim_inputs.c_offset = 50
+    sim_inputs.s_offset = 70
     data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
         simulate_default_plus_clean(sim_inputs)
     plot_first_three_epochs_of_raw_data(data_clean_s, evts);
@@ -32,7 +40,7 @@ begin
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = false,
+        save_interim_results = true,
     )
 
     save_to_hdf5_ride_format(
@@ -55,6 +63,7 @@ begin
     c_latencies = results.c_latencies
 
     plot_interim_results(data, evts, results, cfg)
+    
 end
 
 # calculate and plot clean erps from the simulated data
@@ -100,18 +109,17 @@ begin
     #plot the results
     f = Figure()
     Axis(f[1, 1], yticks = -100:100)
-    raw = lines!(f[1, 1], erp_clean[1, :, 1], color = "black")
     s = lines!(f[1, 1], erp_clean_s[1, :, 1], color = "blue")
     c = lines!(f[1, 1], erp_clean_c[1, :, 1], color = "red")
     r = lines!(f[1, 1], erp_clean_r[1, :, 1], color = "green")
-    Legend(f[1, 2], [raw, s, r, c], ["Raw ERP", "S ERP", "R ERP", "C ERP"])
-    Label(f[0, :], text = "Simulated clean ERPs")
+    Legend(f[1, 2], [s, r, c], ["S", "R", "C"])
+    Label(f[0, :], text = "Expected Results")
     display(f)
     save("actual_erps.png", f)
 end
 
 begin
-    @benchmark ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
+    #@benchmark ride_algorithm(UnfoldRide, data, evts_without_c, cfg)
 
-    @benchmark ride_algorithm(OriginalRide, data, evts_without_c, cfg)
+    #@benchmark ride_algorithm(OriginalRide, data, evts_without_c, cfg)
 end

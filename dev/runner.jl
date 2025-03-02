@@ -1,5 +1,6 @@
 using Pkg
 Pkg.activate("./dev")
+
 using Revise
 includet("../src/UnfoldRIDE.jl")
 includet("../test/simulate_test_data.jl")
@@ -16,7 +17,7 @@ begin
     #sim_inputs.r_offset = 0
     #sim_inputs.c_beta = -5
     #sim_inputs.c_offset = 50
-    sim_inputs.s_offset = 70
+    #sim_inputs.s_offset = 70
     data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
         simulate_default_plus_clean(sim_inputs)
     plot_first_three_epochs_of_raw_data(data_clean_s, evts);

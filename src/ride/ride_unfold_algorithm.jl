@@ -6,11 +6,8 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
     data_reshaped = reshape(data, (1, :))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-    results = Vector{RideResults}()
-    for i in range(1, size(data, 1))
-        push!(results, RideResults())
-    end
-
+    results = RideResults()
+    ##
 
     #epoch data with the cfg.epoch_range to see how many epochs we have
     #cut evts to match the determined number of epochs

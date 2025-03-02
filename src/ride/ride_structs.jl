@@ -21,8 +21,8 @@ struct UnfoldModeRIDE <: AbstractRIDE end
 
 @with_kw mutable struct RideResults
     interim_results::Vector{RideResults} = Vector{RideResults}()
-    s_erp::Matrix{Float64} = Any[]
-    r_erp::Array{Float64,2} = []
-    c_erp::Array{Float64,2} = []
-    c_latencies::Array{Int64,2} = []
+    s_erp::Matrix{Float64}
+    r_erp::Array{Float64,2}
+    c_erp::Array{Float64,2}
+    c_latencies::Array{Int64,2}
 end

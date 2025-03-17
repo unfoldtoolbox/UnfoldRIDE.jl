@@ -81,19 +81,20 @@ function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
     return evts_c
 end
 
-function save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
-    c_latencies = Vector()
-    for i in axes(c_latencies_df, 1)
-        push!(c_latencies, c_latencies_df[i].latency)
-        @show i
+function save_interim_results!(results::Vector{}, s_erp, r_erp, c_erp, c_latencies_df)
+    for i in 1:size(results, 1)
+        save_interim_results!(results[i], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i])
     end
+end
+
+function save_interim_results!(result::RideResults, s_erp, r_erp, c_erp, c_latencies_df)
     temp_result = RideResults(
         s_erp = copy(s_erp),
         r_erp = copy(r_erp),
         c_erp = copy(c_erp),
-        c_latencies = copy(c_latencies),
+        c_latencies = copy(c_latencies_df.latency),
     )
-    push!(results.interim_results, temp_result)
+    push!(result.interim_results, temp_result)
 end
 
 # check for multiple "competing" peaks in the xcorrelation

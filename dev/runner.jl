@@ -56,12 +56,12 @@ begin
 
     #run the ride algorithm
     results = ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
-    s_erp = results.s_erp
-    r_erp = results.r_erp
-    c_erp = results.c_erp
-    c_latencies = results.c_latencies
+    s_erp = results[1].s_erp
+    r_erp = results[1].r_erp
+    c_erp = results[1].c_erp
+    c_latencies = results[1].c_latencies
 
-    plot_interim_results(data, evts, results, cfg)
+    plot_interim_results(data, evts, results[1], cfg)
     
 end
 
@@ -141,14 +141,14 @@ begin
         c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
         c_estimation_range = [-0.1, 0.9],
         epoch_range = [-0.3, 1.6],
-        iteration_limit = 5,
+        iteration_limit = 4,
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = false,
+        save_interim_results = true,
     )
 
-    noise = PinkNoise(; noiselevel = 0.1)
+    noise = PinkNoise(; noiselevel = 0.2)
     data_channel1 = reshape(deepcopy(data), (1,:))
     UnfoldSim.add_noise!(MersenneTwister(1234), noise, data_channel1)
     data_channel2 = reshape(deepcopy(data), (1,:))
@@ -157,11 +157,18 @@ begin
     UnfoldSim.add_noise!(MersenneTwister(1278), noise, data_channel3)
     data_channels = vcat(data_channel1, data_channel2, data_channel3)
 
+    for i in axes(data_channels, 1)
+        plot_first_three_epochs_of_raw_data(reshape(data_channels[i,:], (1,:)), evts);
+    end
+
+
     #remove the C events from the evts table, these will be estimated by the ride algorithm
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldModeRIDE, data_channels, evts_without_c, cfg)
+    results = ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
 
-
+    for i in axes(results, 1)
+        plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
+    end
 end

@@ -6,7 +6,12 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
     data_reshaped = reshape(data, (1, :))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-    results = RideResults()
+    results = Vector()
+    for i in axes(data, 1)
+        new_results = RideResults()
+        new_results.interim_results = Vector()
+        push!(results, new_results)
+    end
     ##
 
     #epoch data with the cfg.epoch_range to see how many epochs we have
@@ -61,7 +66,7 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
     c_latencies_df = initial_peak_estimation(residuals_without_SR, evts_s, cfg)
     evts_c = build_c_evts_table(c_latencies_df, evts_s, cfg)
     ##
-    @show size(c_latencies_df)
+    @show size(c_latencies_df[1].latency)
 
     ## calculate first c_erp from initial latencies and residue/data
     data_residuals_c_epoched, times = Unfold.epoch(
@@ -107,20 +112,20 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
 
 
     ## iteration start
-    for i in range(1, 2)#cfg.iteration_limit)
+    for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
         s_erp, r_erp, c_erp, residue = unfold_decomposition(data, evts_with_c, cfg)
         ##
 
         ## update C latencies and apply heuristics
-        for n in range(1, size(c_latencies_df, 1))
+        for n in axes(data, 1)
             ## update C latencies via pattern matching
             if cfg.filtering
                 residue[n,:] = dspfilter(residue[n, :], 5, 20)
             end
             c_latencies_df[n], xcorr, onset =
-                unfold_pattern_matching(c_latencies_df[n], residue[n,:], c_erp, evts_s, cfg)
+                unfold_pattern_matching(c_latencies_df[n], residue[n,:], c_erp[n,:], evts_s, cfg)
             ##
 
             ## heuristics
@@ -163,9 +168,12 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
         end
     end
 
-    results.s_erp = s_erp
-    results.r_erp = r_erp
-    results.c_erp = c_erp
+    for i in axes(results, 1)
+        results[i].s_erp = s_erp[i,:]
+        results[i].r_erp = r_erp[i,:]
+        results[i].c_erp = c_erp[i,:]
+        results[i].c_latencies = c_latencies_df[i].latency
+    end
     #results.c_latencies = c_latencies_df.latency
 
     return results

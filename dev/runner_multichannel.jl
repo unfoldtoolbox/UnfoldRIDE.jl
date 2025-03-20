@@ -31,17 +31,20 @@ begin
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = true,
+        save_interim_results = false,
     )
 
+    channels = 50
+    data_channels_vector = Vector()
     noise = PinkNoise(; noiselevel = 1)
-    data_channel1 = reshape(deepcopy(data), (1,:))
-    UnfoldSim.add_noise!(MersenneTwister(1234), noise, data_channel1)
-    data_channel2 = reshape(deepcopy(data), (1,:))
-    UnfoldSim.add_noise!(MersenneTwister(5678), noise, data_channel2)
-    data_channel3 = reshape(deepcopy(data), (1,:))
-    UnfoldSim.add_noise!(MersenneTwister(1278), noise, data_channel3)
-    data_channels = vcat(data_channel1, data_channel2, data_channel3)
+    for i in 1:channels
+        data_channel1 = reshape(deepcopy(data), (1,:))
+        UnfoldSim.add_noise!(MersenneTwister(i), noise, data_channel1)
+        push!(data_channels_vector, data_channel1)
+    end
+    data_channels = reduce(vcat, data_channels_vector)
+
+
 
     for i in axes(data_channels, 1)
         plot_first_three_epochs_of_raw_data(reshape(data_channels[i,:], (1,:)), evts);
@@ -52,9 +55,15 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    @benchmark results = ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
+    results = ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
 
     for i in axes(results, 1)
         plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
     end
+end
+
+if true == false
+    @benchmark ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
+    
+    @benchmark ride_algorithm(UnfoldModeRIDE, data_channels, evts_without_c, cfg)
 end

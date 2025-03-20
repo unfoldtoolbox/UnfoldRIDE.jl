@@ -54,7 +54,6 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
         r_erp[i,:] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
     end
     ##
-    @show size(s_erp)
 
     ## initial residue calculation (data minus S and R)
     yhat = predict(m, overlap = true)
@@ -66,7 +65,6 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
     c_latencies_df = initial_peak_estimation(residuals_without_SR, evts_s, cfg)
     evts_c = build_c_evts_table(c_latencies_df, evts_s, cfg)
     ##
-    @show size(c_latencies_df[1].latency)
 
     ## calculate first c_erp from initial latencies and residue/data
     data_residuals_c_epoched, times = Unfold.epoch(
@@ -79,9 +77,6 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
         Unfold.drop_missing_epochs(evts_c, data_residuals_c_epoched)
     c_erp = median(data_residuals_c_epoched, dims = 3)
     c_erp = c_erp[:, :, 1]
-    @show typeof(c_erp)
-    @show size(c_erp)
-    @show size(data_residuals_c_epoched)
     ##
 
     ## save interim results

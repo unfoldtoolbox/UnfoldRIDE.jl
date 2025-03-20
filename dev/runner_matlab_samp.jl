@@ -46,8 +46,17 @@ end
 
 #import data
 begin
-    data, evts = import_data_from_hdf5("dev/matlab_ride_samp_face.h5", 44)
+    #data, evts = import_data_from_hdf5("dev/matlab_ride_samp_face.h5", 44)
     #plot_first_three_epochs_of_raw_data(data, evts);
+    path = "dev/matlab_ride_samp_face.h5"
+    data_channels_vector = Vector()
+    for i in 1:65
+        data_channel1 = reshape(import_data_from_hdf5(path, i)[1], (1,:))
+        push!(data_channels_vector, data_channel1)
+    end 
+    data = reduce(vcat, data_channels_vector)
+    evts = import_data_from_hdf5(path, 1)[2]
+    @assert(evts == import_data_from_hdf5(path, 2)[2])
 end
 
 #run the ride algorithm on the simulated data
@@ -60,7 +69,7 @@ begin
         c_range = [-200, 200],
         c_estimation_range = [0, 400],
         epoch_range = [-49, 500],
-        iteration_limit = 5,
+        iteration_limit = 4,
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
@@ -68,8 +77,8 @@ begin
     )
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldModeRide, data, evts, cfg)
-    plot_interim_results(data, evts, results, cfg)
+    results = ride_algorithm(UnfoldModeRIDE, data, evts, cfg)
+    plot_interim_results(reshape(data[44,:],(1,:)), evts, results[44], cfg)
 end
 
 

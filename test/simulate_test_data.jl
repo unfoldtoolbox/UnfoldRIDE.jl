@@ -9,11 +9,6 @@ using DataFramesMeta
 using Statistics
 using DSP
 
-@with_kw struct MultiOnset <: AbstractOnset
-    stimulus_onset::AbstractOnset
-    component_to_stimulus_onsets::Vector{AbstractOnset}
-end
-
 @with_kw mutable struct simulation_inputs
     rng::AbstractRNG = MersenneTwister(1234)
     noise::AbstractNoise = NoNoise()
@@ -28,6 +23,39 @@ end
     r_offset::Int = 15
     r_beta::Int = 5
     r_continous::Int = 1
+end
+
+@with_kw struct SequenceOnset <: AbstractOnset
+    stimulus_onset::AbstractOnset
+    components_onset::Vector{AbstractOnset}
+end
+
+function UnfoldSim.simulate_onsets(rng, onset::SequenceOnset, simulation::Simulation)
+    #calculate stimulus onsets
+    stimulus_onsets =
+        simulate_interonset_distances(rng, onset.stimulus_onset, simulation.design)
+    stimulus_offset_accumulated = accumulate(+, stimulus_onsets, dims = 1, init = 0)
+
+    #calculate component offsets
+    components_onsets = Vector{Vector{Int}}()
+    for obj in onset.components_onset
+        Random.seed!(rng, rand(rng, 1:10000))
+        push!(components_onsets, simulate_interonset_distances(rng, obj, simulation.design))
+    end
+
+    #combine the stimulus offsets and component offsets into one vector
+    result = Vector{Int}()
+    for i in axes(stimulus_offset_accumulated, 1)
+        current_offset = stimulus_offset_accumulated[i]
+        push!(result, current_offset)
+        for component_onsets in components_onsets
+            push!(result, current_offset + component_onsets[i])
+        end
+    end
+
+    #cut result to the design size
+    result = result[1:size(simulation.design)]
+    return result
 end
 
 function simulate_default_plus_clean(simulation_inputs = simulation_inputs())
@@ -62,6 +90,60 @@ function simulate_default_plus_clean(simulation_inputs = simulation_inputs())
     data_clean_c, n = default_sequence_design(c_clean_inputs)
 
     return data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c
+end
+
+function simple_example_design()
+    design =
+        SingleSubjectDesign(;
+            conditions = Dict(
+                :condition => ["car", "face"],
+                :continuous => range(0, 1, length = 10),
+            ),
+        ) |> x -> RepeatDesign(x, 4)
+
+    # Define the components
+    s_component_p = LinearModelComponent(;
+        basis = p100(),
+        formula = @formula(0 ~ 1),
+        β = [simulation_inputs.s_beta],
+    )
+
+    s_component_n = LinearModelComponent(;
+        basis = n170(),
+        formula = @formula(0 ~ 1 + condition),
+        β = [simulation_inputs.s_beta, simulation_inputs.s_continous],
+    )
+
+    r_component = LinearModelComponent(;
+        basis = p300(),
+        formula = @formula(0 ~ 1 + continuous),
+        β = [simulation_inputs.r_beta, simulation_inputs.r_continous],
+    )
+
+    c_component = LinearModelComponent(;
+        basis = p100(), #vcat(p100().*0.3,zeros(7))+vcat(zeros(7),p100()), #
+        formula = @formula(0 ~ 1),
+        β = [simulation_inputs.c_beta],
+    )
+
+    onsetStimulus = UniformOnset(width = 0, offset = 200)
+
+    #onsetC =
+    #    UniformOnset(width = simulation_inputs.c_width, offset = simulation_inputs.c_offset)
+
+    #onsetR =
+    #    UniformOnset(width = simulation_inputs.r_width, offset = simulation_inputs.r_offset)
+
+    #multi_onset = MultiOnset(onsetStimulus, [onsetC, onsetR])
+
+    components = Dict('S' => [s_component_p, s_component_n])
+
+    data_s, evts_s =
+        simulate(MersenneTwister(1234), design, components, onsetStimulus, NoNoise())
+
+
+
+
 end
 
 function default_sequence_design(simulation_inputs = simulation_inputs())
@@ -110,7 +192,7 @@ function default_sequence_design(simulation_inputs = simulation_inputs())
     onsetR =
         UniformOnset(width = simulation_inputs.r_width, offset = simulation_inputs.r_offset)
 
-    multi_onset = MultiOnset(onsetStimulus, [onsetC, onsetR])
+    sequence_onset = SequenceOnset(onsetStimulus, [onsetC, onsetR])
 
     components = Dict(
         'S' => [s_component_p, s_component_n],
@@ -122,61 +204,11 @@ function default_sequence_design(simulation_inputs = simulation_inputs())
         simulation_inputs.rng,
         sequence_design,
         components,
-        multi_onset,
+        sequence_onset,
         simulation_inputs.noise,
     )
 
     return data, evts
-end
-
-@with_kw struct DummySizeDesign <: AbstractDesign
-    size = 0
-end
-
-function Base.size(design::DummySizeDesign)
-    return design.size
-end
-
-function UnfoldSim.simulate_onsets(rng, onset::MultiOnset, simulation::Simulation)
-    design_size = size(simulation.design)
-    number_of_components = length(onset.component_to_stimulus_onsets)
-    divided_design_size = Int(ceil(design_size / (number_of_components + 1)))
-
-    stimulus_offset = Vector{Int}
-    component_offsets = Vector{Vector{Int}}()
-
-    #calculate raw offsets
-    stimulus_offset = simulate_interonset_distances(
-        rng,
-        onset.stimulus_onset,
-        DummySizeDesign(divided_design_size),
-    )
-    stimulus_offset_accumulated = accumulate(+, stimulus_offset, dims = 1, init = 1)
-    for obj in onset.component_to_stimulus_onsets
-        push!(
-            component_offsets,
-            simulate_interonset_distances(rng, obj, DummySizeDesign(divided_design_size)),
-        )
-    end
-
-    #combine the stimulus offsets and component offsets into one vector
-    result = Vector{Int}()
-    for i = 1:divided_design_size
-        current_offset = stimulus_offset_accumulated[i]
-        push!(result, current_offset)
-        for j = 1:length(component_offsets)
-            push!(result, current_offset + component_offsets[j][i])
-        end
-    end
-
-    #result can be filled with too many items due to rounding errors.
-    #remove them until result matches the design size
-    while design_size < length(result)
-        deleteat!(result, length(result))
-    end
-
-    #todo: change the reaction times to point to the peak of the R component
-    return result
 end
 
 function save_to_hdf5_ride_format(data, evts, epoch_range, epoch_char, reaction_char, sfreq)

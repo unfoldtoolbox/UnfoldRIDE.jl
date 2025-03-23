@@ -34,7 +34,7 @@ begin
         save_interim_results = false,
     )
 
-    channels = 50
+    channels = 5
     data_channels_vector = Vector()
     noise = PinkNoise(; noiselevel = 1)
     for i in 1:channels
@@ -56,7 +56,6 @@ begin
 
     #run the ride algorithm
     results = ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
-
     for i in axes(results, 1)
         plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
     end

@@ -13,7 +13,12 @@ using BenchmarkTools
 begin
     sim_inputs = simulation_inputs()
     sim_inputs.noise = PinkNoise(; noiselevel = 1)
-    #sim_inputs.c_width = 60
+    #sim_inputs.c_width = 30
+    #sim_inputs.c_offset = 10
+    #sim_inputs.r_width = 60
+    #sim_inputs.r_offset = 15
+    #sim_inputs.c_beta = -4
+    #sim_inputs.r_beta = 6
     #sim_inputs.r_offset = 0
     #sim_inputs.c_beta = -5
     #sim_inputs.c_offset = 50
@@ -55,14 +60,13 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
+    results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
     s_erp = results[1].s_erp
     r_erp = results[1].r_erp
     c_erp = results[1].c_erp
     c_latencies = results[1].c_latencies
 
     plot_interim_results(data, evts, results[1], cfg)
-    
 end
 
 # calculate and plot clean erps from the simulated data

@@ -20,8 +20,11 @@ end
 
 function initial_peak_estimation(data_residuals_continous::Array{Float64,2}, evts_s, cfg)
     latencies_df_vector = Vector()
-    for i in 1:size(data_residuals_continous, 1)
-        push!(latencies_df_vector, initial_peak_estimation(data_residuals_continous[i, :], evts_s, cfg))
+    for i = 1:size(data_residuals_continous, 1)
+        push!(
+            latencies_df_vector,
+            initial_peak_estimation(data_residuals_continous[i, :], evts_s, cfg),
+        )
     end
     return latencies_df_vector
 end
@@ -59,7 +62,7 @@ end
 function build_c_evts_table(latencies_df_vector::Vector, evts, cfg)
     #@assert size(latencies_df_vector, 1) > 1 "latencies_df_vector must have at least 2 elements"
     latencies_mean = deepcopy(latencies_df_vector[1])
-    for i in range(2,size(latencies_df_vector, 1))
+    for i in range(2, size(latencies_df_vector, 1))
         latencies_mean.latency .+= latencies_df_vector[i].latency
     end
     latencies_mean.latency ./= size(latencies_df_vector, 1)
@@ -81,20 +84,50 @@ function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
     return evts_c
 end
 
-function save_interim_results!(results::Vector{}, s_erp, r_erp, c_erp, c_latencies_df)
-    for i in 1:size(results, 1)
-        save_interim_results!(results[i], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i])
+function save_interim_results!(result_vector::Vector, evts, s_erp::Vector, r_erp::Vector, c_erp::Vector, c_latencies_df::DataFrame, cfg)
+    r = create_results(evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+    push!(result_vector, r)
+end
+
+function save_interim_results!(result_vector::Vector{Vector}, evts, s_erp::Matrix, r_erp::Matrix, c_erp::Matrix, c_latencies_df::Vector, cfg)
+    for i in axes(result_vector, 1)
+        r = create_results(evts, s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
+        push!(result_vector[i], r)
     end
 end
 
-function save_interim_results!(result::RideResults, s_erp, r_erp, c_erp, c_latencies_df)
-    temp_result = RideResults(
-        s_erp = copy(s_erp),
-        r_erp = copy(r_erp),
-        c_erp = copy(c_erp),
-        c_latencies = copy(c_latencies_df.latency),
+# change the algorithm data into the correct output formats
+# i.e. pad erps to be as long as one epoch
+# and change the c_latencies to be from stimulus onset instead of epoch start
+function create_results(evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+    evts_s = @subset(evts, :event .== 'S')
+    evts_r = @subset(evts, :event .== 'R')
+
+    # pad erps to have the same size as one epoch
+    mean_s_latency = round(Int, ((-cfg.epoch_range[1] + cfg.s_range[1]) * cfg.sfreq))
+    evts_r_latencies_from_s = evts_r.latency - evts_s.latency
+    mean_r_latency =
+        round(Int, mean(evts_r_latencies_from_s) - (cfg.epoch_range[1] * cfg.sfreq))
+    mean_c_latency = round(Int, mean(c_latencies_df.latency))
+    s_erp_padded = pad_erp_to_epoch_size(s_erp, mean_s_latency, cfg)
+    r_erp_padded = pad_erp_to_epoch_size(r_erp, mean_r_latency, cfg)
+    c_erp_padded = pad_erp_to_epoch_size(c_erp, mean_c_latency, cfg)
+
+    #add the epoch range to the c_latencies as the output should be latency 
+    #from stimulus onset, not from epoch onset
+    c_latencies_from_stimulus_onset =
+        c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)
+    
+    result = RideResults(
+        s_erp = s_erp_padded,
+        r_erp = r_erp_padded,
+        c_erp = c_erp_padded,
+        s_erp_unpadded = s_erp,
+        r_erp_unpadded = r_erp,
+        c_erp_unpadded = c_erp,
+        c_latencies = c_latencies_from_stimulus_onset,
     )
-    push!(result.interim_results, temp_result)
+    return result
 end
 
 # check for multiple "competing" peaks in the xcorrelation
@@ -267,4 +300,15 @@ function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
     #end
 
     return b
+end
+
+
+# pad the erp to the epoch size using the given latency
+function pad_erp_to_epoch_size(erp, latency_from_epoch_start, cfg)
+    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+    padding_front_length = round(Int, latency_from_epoch_start)
+    padding_front = zeros(Float64, max(padding_front_length, 0))
+    padding_back_length = epoch_length - size(padding_front, 1) - size(erp, 1)
+    padding_back = zeros(Float64, max(padding_back_length, 0))
+    return vcat(padding_front, erp, padding_back)
 end

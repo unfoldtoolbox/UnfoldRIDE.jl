@@ -24,5 +24,8 @@ struct UnfoldModeRIDE <: AbstractRIDE end
     s_erp::Array{Float64} = []
     r_erp::Array{Float64} = []
     c_erp::Array{Float64} = []
+    s_erp_unpadded::Array{Float64} = []
+    r_erp_unpadded::Array{Float64} = []
+    c_erp_unpadded::Array{Float64} = []
     c_latencies::Array{Int64} = []
 end

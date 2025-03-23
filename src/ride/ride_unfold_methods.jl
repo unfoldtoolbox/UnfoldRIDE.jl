@@ -10,13 +10,12 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
     xc, result, onset = findxcorrpeak(data_residuals_epoched[1, :, :], c_erp)
-    c_latencies = result .- round(Int, (c_range_adjusted(cfg.c_range)[1] * cfg.sfreq))
 
     for (i, row) in enumerate(eachrow(latencies_df))
         if (row.fixed)
             continue
         end
-        row.latency = c_latencies[i]
+        row.latency = result[i]
     end
 
     return latencies_df, xc, onset

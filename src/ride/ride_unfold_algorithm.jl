@@ -1,16 +1,24 @@
-ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64}, evts, cfg::RideConfig) = ride_algorithm(Modus, reshape(data, (1,:)), evts, cfg)
+ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64}, evts, cfg::RideConfig) =
+    ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg)
 
-function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evts, cfg::RideConfig)
+function ride_algorithm(
+    Modus::Type{UnfoldModeRIDE},
+    data::Array{Float64,2},
+    evts,
+    cfg::RideConfig,
+)
     @debug "Running RIDE algorithm with cfg: $cfg"
+    @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
+    @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
+            cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
+
     ## data_preparation
     data_reshaped = reshape(data, (1, :))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-    results = Vector()
+    interim_results = Vector{Vector}()
     for i in axes(data, 1)
-        new_results = RideResults()
-        new_results.interim_results = Vector()
-        push!(results, new_results)
+        push!(interim_results, Vector{RideResults}())
     end
     ##
 
@@ -47,11 +55,19 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
         data,
     )
     c_table = coeftable(m)
-    s_erp = Matrix{Float64}(undef, size(data, 1), size(@subset(c_table, :eventname .== 'S', :channel .== 1),1))
-    r_erp = Matrix{Float64}(undef, size(data, 1), size(@subset(c_table, :eventname .== 'R', :channel .== 1),1))
+    s_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'S', :channel .== 1), 1),
+    )
+    r_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'R', :channel .== 1), 1),
+    )
     for i in range(1, size(data, 1))
-        s_erp[i,:] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
-        r_erp[i,:] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
+        s_erp[i, :] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
+        r_erp[i, :] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
     end
     ##
 
@@ -81,7 +97,7 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
+        save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     end
 
     ## initial pattern matching with the first calculated c_erp
@@ -90,7 +106,7 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
     for i in range(1, size(c_latencies_df, 1))
         c_latencies_df[i], xcorr = unfold_pattern_matching(
             c_latencies_df[i],
-            residuals_without_SR[i,:],
+            residuals_without_SR[i, :],
             c_erp[i, :],
             evts_s,
             cfg,
@@ -102,7 +118,7 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
+        save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     end
 
 
@@ -117,10 +133,15 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
         for n in axes(data, 1)
             ## update C latencies via pattern matching
             if cfg.filtering
-                residue[n,:] = dspfilter(residue[n, :], 5, 20)
+                residue[n, :] = dspfilter(residue[n, :], 5, 20)
             end
-            c_latencies_df[n], xcorr, onset =
-                unfold_pattern_matching(c_latencies_df[n], residue[n,:], c_erp[n,:], evts_s, cfg)
+            c_latencies_df[n], xcorr, onset = unfold_pattern_matching(
+                c_latencies_df[n],
+                residue[n, :],
+                c_erp[n, :],
+                evts_s,
+                cfg,
+            )
             ##
 
             ## heuristics
@@ -131,7 +152,7 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
                     c_latencies_df_prev_prev[n],
                 )
             end
-            
+
             if cfg.heuristic2
                 heuristic2_randomize_latency_on_convex_xcorr!(
                     c_latencies_df[n],
@@ -159,17 +180,16 @@ function ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64,2}, evt
 
         ## save interim results
         if cfg.save_interim_results
-            save_interim_results!(results, s_erp, r_erp, c_erp, c_latencies_df)
+            save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
         end
     end
 
-    for i in axes(results, 1)
-        results[i].s_erp = s_erp[i,:]
-        results[i].r_erp = r_erp[i,:]
-        results[i].c_erp = c_erp[i,:]
-        results[i].c_latencies = c_latencies_df[i].latency
+    results = Vector{RideResults}()
+    for i in axes(data, 1)
+        r = create_results(evts, s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
+        r.interim_results = interim_results[i]
+        push!(results, r)
     end
-    #results.c_latencies = c_latencies_df.latency
 
     return results
 end

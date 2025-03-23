@@ -1,21 +1,36 @@
 ride_algorithm(Modus::Type{ClassicRIDE}, data, evts; kwargs...) =
     ride_algorithm(Modus, data, evts, RideConfig(kwargs...))
 
-function ride_algorithm(Modus::Type{ClassicRIDE}, data::Array{Float64,2}, evts, cfg::RideConfig)
+function ride_algorithm(
+    Modus::Type{ClassicRIDE},
+    data::Array{Float64,2},
+    evts,
+    cfg::RideConfig,
+)
     r = Vector()
-    for i in range(1,size(data, 1))
-        push!(r, ride_algorithm(Modus, data[i,:], evts, cfg))
+    for i in range(1, size(data, 1))
+        push!(r, ride_algorithm(Modus, data[i, :], evts, cfg)[1])
     end
     return r
 end
 
-function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, cfg::RideConfig)
+function ride_algorithm(
+    Modus::Type{ClassicRIDE},
+    data::Vector{Float64},
+    evts,
+    cfg::RideConfig,
+)
     @debug "Running RIDE algorithm with cfg: $cfg"
+
+    @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
+    @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
+            cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
+
     ## data_preparation
     data_reshaped = reshape(data, (1, :))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-    results = RideResults(s_erp = [], r_erp = [], c_erp = [], c_latencies = [])
+    interim_results = Vector{RideResults}()
 
     #epoch data with the cfg.epoch_range to see how many epochs we have
     #cut evts to match the determined number of epochs
@@ -72,11 +87,13 @@ function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, c
     ## save interim results
     if cfg.save_interim_results
         save_interim_results!(
-            results,
+            interim_results,
+            evts,
             s_erp[1, :, 1],
             r_erp[1, :, 1],
             c_erp[1, :, 1],
             c_latencies_df,
+            cfg,
         )
     end
 
@@ -138,7 +155,7 @@ function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, c
             Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
         xcorr, m, onset =
             findxcorrpeak(data_epoched_subtracted_s_and_r[1, :, :], c_erp[1, :, 1])
-        c_latencies = reshape(m .- round(Int, (c_range_adj[1] * cfg.sfreq)), (1, :))
+        c_latencies = reshape(m, (1, :))
         for (i, row) in enumerate(eachrow(c_latencies_df))
             if (row.fixed)
                 continue
@@ -185,11 +202,13 @@ function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, c
         ## save interim results
         if cfg.save_interim_results
             save_interim_results!(
-                results,
+                interim_results,
+                evts,
                 s_erp[1, :, 1],
                 r_erp[1, :, 1],
                 c_erp[1, :, 1],
                 c_latencies_df,
+                cfg,
             )
         end
     end
@@ -224,20 +243,8 @@ function ride_algorithm(Modus::Type{ClassicRIDE}, data::Vector{Float64}, evts, c
     r_erp = mean(data_subtracted_s_and_c, dims = 3)
     ##
 
-    ## save interim results
-    if cfg.save_interim_results
-        save_interim_results!(
-            results,
-            s_erp[1, :, 1],
-            r_erp[1, :, 1],
-            c_erp[1, :, 1],
-            c_latencies_df,
-        )
-    end
-
-    results.s_erp = s_erp[1, :, 1]
-    results.r_erp = r_erp[1, :, 1]
-    results.c_erp = c_erp[1, :, 1]
-    results.c_latencies = c_latencies_df.latency
-    return results
+    results = create_results(evts, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df, cfg)
+    results.interim_results = interim_results
+    
+    return [results]
 end

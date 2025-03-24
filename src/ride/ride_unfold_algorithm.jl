@@ -1,8 +1,8 @@
-ride_algorithm(Modus::Type{UnfoldModeRIDE}, data::Array{Float64}, evts, cfg::RideConfig) =
+ride_algorithm(Modus::Type{UnfoldMode}, data::Array{Float64}, evts, cfg::RideConfig) =
     ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg)
 
 function ride_algorithm(
-    Modus::Type{UnfoldModeRIDE},
+    Modus::Type{UnfoldMode},
     data::Array{Float64,2},
     evts,
     cfg::RideConfig,
@@ -33,6 +33,7 @@ function ride_algorithm(
     )
     n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
     number_epochs = size(data_epoched, 3)
+    raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
     #@assert size(evts) == (number_epochs * 2) "Size of evts is $(size(evts)) but should be $(number_epochs * 2)"
     evts_s = evts_s[1:number_epochs, :]
     evts_r = evts_r[1:number_epochs, :]
@@ -97,7 +98,7 @@ function ride_algorithm(
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+        save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     end
 
     ## initial pattern matching with the first calculated c_erp
@@ -118,7 +119,7 @@ function ride_algorithm(
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+        save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     end
 
 
@@ -180,13 +181,13 @@ function ride_algorithm(
 
         ## save interim results
         if cfg.save_interim_results
-            save_interim_results!(interim_results, evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+            save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
         end
     end
 
     results = Vector{RideResults}()
     for i in axes(data, 1)
-        r = create_results(evts, s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
+        r = create_results(evts, raw_erp[i, :], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
         r.interim_results = interim_results[i]
         push!(results, r)
     end

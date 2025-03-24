@@ -1,8 +1,8 @@
-ride_algorithm(Modus::Type{ClassicRIDE}, data, evts; kwargs...) =
+ride_algorithm(Modus::Type{ClassicMode}, data, evts; kwargs...) =
     ride_algorithm(Modus, data, evts, RideConfig(kwargs...))
 
 function ride_algorithm(
-    Modus::Type{ClassicRIDE},
+    Modus::Type{ClassicMode},
     data::Array{Float64,2},
     evts,
     cfg::RideConfig,
@@ -15,7 +15,7 @@ function ride_algorithm(
 end
 
 function ride_algorithm(
-    Modus::Type{ClassicRIDE},
+    Modus::Type{ClassicMode},
     data::Vector{Float64},
     evts,
     cfg::RideConfig,
@@ -43,6 +43,7 @@ function ride_algorithm(
     )
     n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
     number_epochs = size(data_epoched, 3)
+    raw_erp = mean(data_epoched, dims = 3)[1, :, 1]
     #@assert size(evts) == (number_epochs * 2) "Size of evts is $(size(evts)) but should be $(number_epochs * 2)"
     evts_s = evts_s[1:number_epochs, :]
     evts_r = evts_r[1:number_epochs, :]
@@ -89,6 +90,7 @@ function ride_algorithm(
         save_interim_results!(
             interim_results,
             evts,
+            raw_erp,
             s_erp[1, :, 1],
             r_erp[1, :, 1],
             c_erp[1, :, 1],
@@ -204,6 +206,7 @@ function ride_algorithm(
             save_interim_results!(
                 interim_results,
                 evts,
+                raw_erp,
                 s_erp[1, :, 1],
                 r_erp[1, :, 1],
                 c_erp[1, :, 1],
@@ -243,7 +246,7 @@ function ride_algorithm(
     r_erp = mean(data_subtracted_s_and_c, dims = 3)
     ##
 
-    results = create_results(evts, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df, cfg)
+    results = create_results(evts, raw_erp, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df, cfg)
     results.interim_results = interim_results
     
     return [results]

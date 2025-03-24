@@ -16,11 +16,12 @@
 end
 
 abstract type AbstractRIDE end
-struct ClassicRIDE <: AbstractRIDE end
-struct UnfoldModeRIDE <: AbstractRIDE end
+struct ClassicMode <: AbstractRIDE end
+struct UnfoldMode <: AbstractRIDE end
 
 @with_kw mutable struct RideResults
     interim_results::Vector{RideResults} = []
+    raw_erp::Array{Float64} = []
     s_erp::Array{Float64} = []
     r_erp::Array{Float64} = []
     c_erp::Array{Float64} = []

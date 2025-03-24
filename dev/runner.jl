@@ -60,7 +60,7 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
+    results = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
     s_erp = results[1].s_erp
     r_erp = results[1].r_erp
     c_erp = results[1].c_erp
@@ -122,7 +122,7 @@ begin
 end
 
 if true == false
-    @benchmark ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
+    @benchmark ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
 
-    @benchmark ride_algorithm(ClassicRIDE , data, evts_without_c, cfg)
+    @benchmark ride_algorithm(ClassicMode, data, evts_without_c, cfg)
 end

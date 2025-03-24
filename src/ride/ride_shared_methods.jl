@@ -84,14 +84,14 @@ function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
     return evts_c
 end
 
-function save_interim_results!(result_vector::Vector, evts, s_erp::Vector, r_erp::Vector, c_erp::Vector, c_latencies_df::DataFrame, cfg)
-    r = create_results(evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+function save_interim_results!(result_vector::Vector, evts, raw_erp::Vector, s_erp::Vector, r_erp::Vector, c_erp::Vector, c_latencies_df::DataFrame, cfg)
+    r = create_results(evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     push!(result_vector, r)
 end
 
-function save_interim_results!(result_vector::Vector{Vector}, evts, s_erp::Matrix, r_erp::Matrix, c_erp::Matrix, c_latencies_df::Vector, cfg)
+function save_interim_results!(result_vector::Vector{Vector}, evts, raw_erp::Matrix, s_erp::Matrix, r_erp::Matrix, c_erp::Matrix, c_latencies_df::Vector, cfg)
     for i in axes(result_vector, 1)
-        r = create_results(evts, s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
+        r = create_results(evts, raw_erp[i, :], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
         push!(result_vector[i], r)
     end
 end
@@ -99,7 +99,7 @@ end
 # change the algorithm data into the correct output formats
 # i.e. pad erps to be as long as one epoch
 # and change the c_latencies to be from stimulus onset instead of epoch start
-function create_results(evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+function create_results(evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
 
@@ -119,6 +119,7 @@ function create_results(evts, s_erp, r_erp, c_erp, c_latencies_df, cfg)
         c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)
     
     result = RideResults(
+        raw_erp = raw_erp,
         s_erp = s_erp_padded,
         r_erp = r_erp_padded,
         c_erp = c_erp_padded,

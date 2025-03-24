@@ -46,9 +46,7 @@ end
 
 #import data
 begin
-    #data, evts = import_data_from_hdf5("dev/matlab_ride_samp_face.h5", 44)
-    #plot_first_three_epochs_of_raw_data(data, evts);
-    path = "dev/matlab_ride_samp_face.h5"
+    path = "dev/data/matlab_ride_samp_face.h5"
     data_channels_vector = Vector()
     for i in 1:65
         data_channel1 = reshape(import_data_from_hdf5(path, i)[1], (1,:))
@@ -86,7 +84,7 @@ end
 #the erp calculated after concatenation and unfold.epoch() is identical
 if true == false
     channel = 44
-    file_path = "dev/matlab_ride_samp_face.h5"
+    file_path = "dev/data/matlab_ride_samp_face.h5"
 
     data, evts = import_data_from_hdf5(file_path, channel)
     import_data = h5read(file_path, "/dataset_data")

@@ -22,7 +22,3 @@ UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [sources]
 UnfoldSim = {rev = "v4.0", url = "https://github.com/unfoldtoolbox/UnfoldSim.jl"}
-
-[compat]
-LinearAlgebra = "1.11"
-UnicodePlots = "3.7"

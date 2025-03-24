@@ -211,7 +211,7 @@ function default_sequence_design(simulation_inputs = simulation_inputs())
     return data, evts
 end
 
-function save_to_hdf5_ride_format(data, evts, epoch_range, epoch_char, reaction_char, sfreq)
+function save_to_hdf5_ride_format(filepath, data, evts, epoch_range, epoch_char, reaction_char, sfreq)
     evts_epoch_temp = @subset(evts, :event .== epoch_char)
     data_epoched_temp, times =
         Unfold.epoch(data = data, tbl = evts_epoch_temp, τ = epoch_range, sfreq = sfreq)
@@ -237,7 +237,7 @@ function save_to_hdf5_ride_format(data, evts, epoch_range, epoch_char, reaction_
 
     #todo maybe create chanlocs and save them here
 
-    h5open("simulated_data.h5", "w") do file
+    h5open(filepath, "w") do file
         # Save the 3D array
         write(file, "dataset_data", ride_matrix)
 

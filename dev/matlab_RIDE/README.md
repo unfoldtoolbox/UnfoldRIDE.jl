@@ -13,5 +13,3 @@ The Matlab RIDE Project is available here:
 https://cns.hkbu.edu.hk/RIDE_files/Page308.htm
 
 https://github.com/guangouyang/RIDE
-
-EEGLAB is also included, as matlab RIDE uses it to import data and for topoplots.

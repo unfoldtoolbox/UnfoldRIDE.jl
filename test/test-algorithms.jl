@@ -31,7 +31,7 @@ using LinearAlgebra
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(UnfoldModeRIDE, data, evts_without_c, cfg)
+        results = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)[1]
     end
 
     # calculate and plot clean erps from the simulated data
@@ -121,7 +121,7 @@ end
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
+        results = ride_algorithm(ClassicMode, data, evts_without_c, cfg)[1]
     end
 
     # calculate and plot clean erps from the simulated data
@@ -211,14 +211,13 @@ end
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        results = ride_algorithm(ClassicRIDE, data, evts_without_c, cfg)
+        results = ride_algorithm(ClassicMode, data, evts_without_c, cfg)[1]
 
         #run the ride algorithm with keyword arguments
         results_kw = ride_algorithm(
-            ClassicRIDE,
+            ClassicMode,
             data,
-            evts_without_c,
-            cfg;
+            evts_without_c;
             sfreq = 100,
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
@@ -230,8 +229,8 @@ end
             heuristic2 = true,
             heuristic3 = true,
             save_interim_results = false,
-        )
-
-        @test results == results_kw
+        )[1]
+        @test results.c_erp == results_kw.c_erp
+        @test results.c_latencies == results_kw.c_latencies
     end
 end

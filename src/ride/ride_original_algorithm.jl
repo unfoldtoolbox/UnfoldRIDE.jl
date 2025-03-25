@@ -1,5 +1,5 @@
-ride_algorithm(Modus::Type{ClassicMode}, data, evts; kwargs...) =
-    ride_algorithm(Modus, data, evts, RideConfig(kwargs...))
+ride_algorithm(Modus::Type{ClassicMode}, data::Vector{Float64}, evts; kwargs...) =
+    ride_algorithm(Modus, data, evts, RideConfig(;kwargs...))
 
 function ride_algorithm(
     Modus::Type{ClassicMode},

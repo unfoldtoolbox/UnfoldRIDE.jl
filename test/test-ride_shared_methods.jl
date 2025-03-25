@@ -97,8 +97,8 @@ include("../src/ride/ride_shared_methods.jl")
         heuristic3_pick_closest_xcorr_peak!(
             latencies_df,
             latencies_df_old,
-            xc,
-            0.8,
+            xc;
+            equality_threshold = 0.8,
             onset = onset,
         )
 

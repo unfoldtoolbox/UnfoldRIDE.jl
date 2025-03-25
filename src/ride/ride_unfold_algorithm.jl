@@ -167,8 +167,8 @@ function ride_algorithm(
                 heuristic3_pick_closest_xcorr_peak!(
                     c_latencies_df[n],
                     c_latencies_df_prev[n],
-                    xcorr,
-                    cfg.heuristic3_threshhold,
+                    xcorr;
+                    equality_threshold = cfg.heuristic3_threshhold,
                     onset = onset,
                 )
             end

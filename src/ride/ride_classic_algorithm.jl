@@ -1,5 +1,5 @@
 ride_algorithm(Modus::Type{ClassicMode}, data::Vector{Float64}, evts; kwargs...) =
-    ride_algorithm(Modus, data, evts, RideConfig(;kwargs...))
+    ride_algorithm(Modus, data, evts, RideConfig(; kwargs...))
 
 function ride_algorithm(
     Modus::Type{ClassicMode},
@@ -87,15 +87,17 @@ function ride_algorithm(
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(
+        push!(
             interim_results,
-            evts,
-            raw_erp,
-            s_erp[1, :, 1],
-            r_erp[1, :, 1],
-            c_erp[1, :, 1],
-            c_latencies_df,
-            cfg,
+            create_results(
+                evts,
+                raw_erp,
+                s_erp[1, :, 1],
+                r_erp[1, :, 1],
+                c_erp[1, :, 1],
+                c_latencies_df,
+                cfg,
+            ),
         )
     end
 
@@ -190,8 +192,8 @@ function ride_algorithm(
             heuristic3_pick_closest_xcorr_peak!(
                 c_latencies_df,
                 c_latencies_df_prev,
-                xcorr,
-                cfg.heuristic3_threshhold,
+                xcorr;
+                equality_threshold = cfg.heuristic3_threshhold,
                 onset = onset,
             )
         end
@@ -203,15 +205,17 @@ function ride_algorithm(
 
         ## save interim results
         if cfg.save_interim_results
-            save_interim_results!(
+            push!(
                 interim_results,
-                evts,
-                raw_erp,
-                s_erp[1, :, 1],
-                r_erp[1, :, 1],
-                c_erp[1, :, 1],
-                c_latencies_df,
-                cfg,
+                create_results(
+                    evts,
+                    raw_erp,
+                    s_erp[1, :, 1],
+                    r_erp[1, :, 1],
+                    c_erp[1, :, 1],
+                    c_latencies_df,
+                    cfg,
+                ),
             )
         end
     end
@@ -246,8 +250,16 @@ function ride_algorithm(
     r_erp = mean(data_subtracted_s_and_c, dims = 3)
     ##
 
-    results = create_results(evts, raw_erp, s_erp[1,:,1], r_erp[1,:,1], c_erp[1,:,1], c_latencies_df, cfg)
+    results = create_results(
+        evts,
+        raw_erp,
+        s_erp[1, :, 1],
+        r_erp[1, :, 1],
+        c_erp[1, :, 1],
+        c_latencies_df,
+        cfg,
+    )
     results.interim_results = interim_results
-    
+
     return [results]
 end

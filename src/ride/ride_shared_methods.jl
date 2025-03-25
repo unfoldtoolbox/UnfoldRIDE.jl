@@ -1,78 +1,143 @@
-function findxcorrpeak(d, kernel; window = false)
+"""
+    findxcorrpeak(d::Matrix, kernel::Vector; window = false)
+
+Calculate the cross correlation between the data and the kernel for each epoch and find the peak.
+
+# Arguments
+- `data::Matrix{Float64}`: Input data in shape (samples, epochs)
+- `kernel::Vector{Float64}`: Kernel to cross correlate with the data.
+
+# Keyword arguments
+- `window::Bool = false`: Apply a Hanning window to the kernel before cross-correlation, 
+    favoring central values of the kernel.
+
+# Returns
+- `xc::Vector{Vector{Float64}}` : Cross correlation result per epoch.
+- `maxima::Vector{Int}` : Maxima of the cross correlation per epoch.
+- `onset::Int` : Onset of the kernel.
+"""
+function findxcorrpeak(data::Matrix{Float64}, kernel::Vector{Float64}; window::Bool = false)
     #the purpose of this method is to find the peak of the cross correlation between the kernel and the data
     #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.
     weightedkernel = window ? kernel .* hanning(length(kernel)) : kernel
-    xc = xcorr.(eachcol(d), Ref(weightedkernel); padmode = :none)
-    onset = length(kernel)
-    m = [findmax(x)[2] for x in xc] .- onset
-    return xc, m, onset
+    xc::Vector{Vector{Float64}} = xcorr.(eachcol(data), Ref(weightedkernel); padmode = :none)
+    onset::Int = length(kernel)
+    maxima::Vector{Int} = [findmax(x)[2] for x in xc] .- onset
+    return xc, maxima, onset
 end
 
-function filtering20(data, a, b)
-    temp = copy(data)
-    i = size(data, 2)
-    for i in size(data, 3)
-        temp[1, :, i] = dspfilter(temp[1, :, i], a, b)
-    end
-    return temp
-end
+"""
+    initial_peak_estimation(data_continous::Matrix{Float64}, evts::DataFrame, cfg::RideConfig)
 
+Multi channel version of initial_peak_estimation.
 
-function initial_peak_estimation(data_residuals_continous::Array{Float64,2}, evts_s, cfg)
+# Arguments
+- `data_continous::Matrix{Float64}`: Input data ins shape (channels, samples).
+- `evts::DataFrame`: Event table. S events are extracted from this table.
+- `cfg::RideConfig`: Configuration for the RIDE algorithm.
+
+# Returns
+- `latencies_df_vector::Vector{DataFrame}` : Vector of DataFrames containing the estimated latencies for every channel. Latencies are from the start of the epoch to the beginning of the c_range.
+"""
+function initial_peak_estimation(data_continous::Matrix{Float64}, evts::DataFrame, cfg::RideConfig)
     latencies_df_vector = Vector()
-    for i = 1:size(data_residuals_continous, 1)
+    for i = 1:size(data_continous, 1)
         push!(
             latencies_df_vector,
-            initial_peak_estimation(data_residuals_continous[i, :], evts_s, cfg),
+            initial_peak_estimation(data_continous[i, :], evts, cfg),
         )
     end
     return latencies_df_vector
 end
 
-function initial_peak_estimation(data_residuals_continous::Array{Float64}, evts_s, cfg)
-    ## initial C latency estimation
+"""
+    initial_peak_estimation(data_continous::Array{Float64}, evts::DataFrame, cfg::RideConfig)
+
+Estimates the C latencies of every epoch using peak picking in the given cfg.c_estimation_range.
+The resulting latencies are from the start of the epoch to the beginning of the c_range.
+
+# Arguments
+- `data_continous::Array{Float64}`: Continous data on which the peak picking is performed.
+- `evts::DataFrame`: Event table. S events are extracted from this table.
+- `cfg::RideConfig`: Configuration for the RIDE algorithm.
+
+# Returns
+- `latencies_df::DataFrame` : DataFrame containing the estimated latencies for every epoch and a fixed=false column. Latencies are from the start of the epoch to the beginning of the c_range.
+"""
+function initial_peak_estimation(data_continous::Array{Float64}, evts::DataFrame, cfg::RideConfig)
+    evts_s = @subset(evts, :event .== 'S')
     data_residuals_epoched, times = Unfold.epoch(
-        data = data_residuals_continous,
+        data = data_continous,
         tbl = evts_s,
         τ = cfg.epoch_range,
         sfreq = cfg.sfreq,
     )
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
-    #Peak estimation/algorithm for initial c latencies
-    c_latencies = Matrix{Float64}(undef, 1, size(data_residuals_epoched, 3))
+    c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
+    #Peak estimation for initial c latencies for every epoch
     for a in (1:size(data_residuals_epoched, 3))
-        range =
-            round.(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq):round(
-                Int,
-                (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq,
-            )
-        #todo C_range still used here? Does this make sense?
-        c_latencies[1, a] =
-            (findmax(abs.(data_residuals_epoched[1, range, a])).+range[1].-1)[2] +
-            round(Int, cfg.c_range[1] * cfg.sfreq)
+        range_start =  round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
+        range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+        range = range_start:range_end
+        #find maximum in the given c_estimation range
+        maximum = findmax(abs.(data_residuals_epoched[1, range, a]))[2]
+        #format the latency to be from epoch start to the start of the c_range window
+        c_latencies[a] = maximum + range[1] - 1 + round(Int, cfg.c_range[1] * cfg.sfreq)
     end
-    latencies_df = DataFrame(latency = c_latencies[1, :], fixed = false)
+    latencies_df = DataFrame(latency = c_latencies, fixed = false)
     return latencies_df
 end
 
+"""
+    c_range_adjusted(c_range::Vector{Float64})
+
+Helper Function to adjust the c_range to be from 0 to the difference of the original c_range.
+This simplifies several of the algorithms functions without the need to create a new variable.
+"""
 function c_range_adjusted(c_range::Vector{Float64})
     return [0, c_range[2] - c_range[1]]
 end
 
-function build_c_evts_table(latencies_df_vector::Vector, evts, cfg)
-    #@assert size(latencies_df_vector, 1) > 1 "latencies_df_vector must have at least 2 elements"
+"""
+    build_c_evts_table(latencies_df_vector::Vector, evts::DataFrame, cfg::RideConfig)
+
+Create C event table by copying S and adding the estimated latency.
+
+This version is used for multi channel data. It calculates the mean of all channels as the estimated latencies.
+
+# Arguments
+- `latencies_df_vector::Vector`: Vector of DataFrames containing the Latency field. Latencies from epoch start are expected.
+- `evts::DataFrame`: Event table. S events are extracted from this table.
+
+# Returns
+- `evts_c::DataFrame` : New event table containing only the C events.
+"""
+function build_c_evts_table(latencies_df_vector::Vector, evts::DataFrame, cfg::RideConfig)
+    #calculate the mean of the latencies over all channels
     latencies_mean = deepcopy(latencies_df_vector[1])
     for i in range(2, size(latencies_df_vector, 1))
         latencies_mean.latency .+= latencies_df_vector[i].latency
     end
     latencies_mean.latency ./= size(latencies_df_vector, 1)
+    #use the usual build_c_evts_table function with the mean latencies
     return build_c_evts_table(latencies_mean, evts, cfg)
 end
 
-#Create C event table by copying S and adding the estimated latency
-function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
+"""
+    build_c_evts_table(latencies_df::DataFrame, evts, cfg::RideConfig)
+
+Create C event table by copying S and adding the estimated latency.
+
+# Arguments
+- `latencies_df::DataFrame`: DataFrame containing the Latency field. Latencies from epoch start are expected.
+- `evts::DataFrame`: Event table. S events are extracted from this table.
+
+# Returns
+- `evts_c::DataFrame` : New event table containing only the C events.
+"""
+function build_c_evts_table(latencies_df::DataFrame, evts::DataFrame, cfg::RideConfig)
     evts_s = @subset(evts, :event .== 'S')
-    evts_s = first(evts_s, size(latencies_df, 1))
+    @assert size(latencies_df, 1) == size(evts_s, 1) "latencies_df and evts_s must have the same size"
     evts_c = copy(evts_s)
     evts_c[!, :latency] .=
         round.(
@@ -84,97 +149,59 @@ function build_c_evts_table(latencies_df::DataFrame, evts, cfg)
     return evts_c
 end
 
-function save_interim_results!(result_vector::Vector, evts, raw_erp::Vector, s_erp::Vector, r_erp::Vector, c_erp::Vector, c_latencies_df::DataFrame, cfg)
-    r = create_results(evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
-    push!(result_vector, r)
-end
+"""
+    heuristic1_monoton_latency_changes!(latencies_df::DataFrame, latencies_df_old::DataFrame, latencies_df_old_old::DataFrame)
 
-function save_interim_results!(result_vector::Vector{Vector}, evts, raw_erp::Matrix, s_erp::Matrix, r_erp::Matrix, c_erp::Matrix, c_latencies_df::Vector, cfg)
-    for i in axes(result_vector, 1)
-        r = create_results(evts, raw_erp[i, :], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
-        push!(result_vector[i], r)
-    end
-end
+Assure tha the changes in the latencies are monoton, i.e. they always change in one direction.
+If a non monoton change is detected, revert the change and set the latency as fixed in the DataFrame.
 
-# change the algorithm data into the correct output formats
-# i.e. pad erps to be as long as one epoch
-# and change the c_latencies to be from stimulus onset instead of epoch start
-function create_results(evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
-    evts_s = @subset(evts, :event .== 'S')
-    evts_r = @subset(evts, :event .== 'R')
-
-    # pad erps to have the same size as one epoch
-    mean_s_latency = round(Int, ((-cfg.epoch_range[1] + cfg.s_range[1]) * cfg.sfreq))
-    evts_r_latencies_from_s = evts_r.latency - evts_s.latency
-    mean_r_latency =
-        round(Int, mean(evts_r_latencies_from_s) - (cfg.epoch_range[1] * cfg.sfreq))
-    mean_c_latency = round(Int, mean(c_latencies_df.latency))
-    s_erp_padded = pad_erp_to_epoch_size(s_erp, mean_s_latency, cfg)
-    r_erp_padded = pad_erp_to_epoch_size(r_erp, mean_r_latency, cfg)
-    c_erp_padded = pad_erp_to_epoch_size(c_erp, mean_c_latency, cfg)
-
-    #add the epoch range to the c_latencies as the output should be latency 
-    #from stimulus onset, not from epoch onset
-    c_latencies_from_stimulus_onset =
-        c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)
-    
-    result = RideResults(
-        raw_erp = raw_erp,
-        s_erp = s_erp_padded,
-        r_erp = r_erp_padded,
-        c_erp = c_erp_padded,
-        s_erp_unpadded = s_erp,
-        r_erp_unpadded = r_erp,
-        c_erp_unpadded = c_erp,
-        c_latencies = c_latencies_from_stimulus_onset,
-    )
-    return result
-end
-
-# check for multiple "competing" peaks in the xcorrelation
-# any peak with a value > maximum * equality_threshold is considered a competing peak
-# the peak closest to the previous latency is chosen
-function heuristic3_pick_closest_xcorr_peak!(
-    latencies_df,
-    latencies_df_old,
-    xcorr,
-    equality_threshold::Float64;
-    onset::Int64 = 0,
+# Arguments
+- `latencies_df::DataFrame`: The current latencies DataFrame.
+- `latencies_df_old::DataFrame`: The previous latencies DataFrame, used to calculate the new change in latency.
+- `latencies_df_old_old::DataFrame`: The latencies DataFrame before the previous one, used to calculate the previous change in latency.
+"""
+function heuristic1_monoton_latency_changes!(
+    latencies_df::DataFrame,
+    latencies_df_old::DataFrame,
+    latencies_df_old_old::DataFrame,
 )
-    @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
-    @assert size(latencies_df_old, 1) == size(latencies_df, 1) "latencies_df and latencies_df_old must have the same size"
-    @assert equality_threshold > 0 && equality_threshold <= 1 "equality_threshold must be between 0 and 1"
-    for (i, row) in enumerate(eachrow(latencies_df_old))
+    for (i, row) in enumerate(eachrow(latencies_df))
         if row.fixed
             continue
         end
-        maxima = findmaxima(xcorr[i])
-        if isempty(maxima)
-            continue
+        prev_change = latencies_df_old.latency[i] - latencies_df_old_old.latency[i]
+        new_change = row.latency - latencies_df_old.latency[i]
+        if prev_change > 0 && new_change < 0 || prev_change < 0 && new_change > 0
+            row.latency = latencies_df_old.latency[i]
+            row.fixed = true
+            @debug "heuristic1 reverted non-monoton latency change for epoch $i"
         end
-        maximum_value = findmax(maxima.heights)[1]
-        competing_peaks = []
-        for (j, peak) in enumerate(maxima.indices)
-            if xcorr[i][peak] > maximum_value * equality_threshold
-                push!(competing_peaks, peak - onset)
-            end
-        end
-        if isempty(competing_peaks)
-            continue
-        end
-        closest_peak = argmin(abs.(competing_peaks .- row.latency))
-        latencies_df.latency[i] = competing_peaks[closest_peak]
     end
 end
 
-# check if the xcorrelation is convex by searching for peaks
-# when no peak is found, the xcorrelation is considered convex and 
-# the latency is randomized with a gaussian distribution over the previous latencies
+"""
+    heuristic2_randomize_latency_on_convex_xcorr!(latencies_df, latencies_df_old, xcorr, rng = MersenneTwister(1234),)
+
+Assure that the cross correlation is not convex, randomize the latency if it is.
+
+Check if the cross correlation is convex by searching for peaks in the cross correlation.
+When no peak is found, the xcorrelation is considered convex and 
+the latency is randomized with a gaussian distribution over the previous latencies.
+
+# Arguments
+- `latencies_df::DataFrame`: The current latencies DataFrame.
+- `latencies_df_old::DataFrame`: The previous latencies DataFrame. 
+    Used to calculate the gaussian distribution for the randomization.
+- `xcorr::Vector{Vector{Float64}}`: Cross correlation results for every epoch.
+
+# Keyword arguments
+- `rng::AbstractRNG = MersenneTwister(1234)`: RNG used for random latency generation.
+"""
 function heuristic2_randomize_latency_on_convex_xcorr!(
-    latencies_df,
-    latencies_df_old,
-    xcorr,
-    rng = MersenneTwister(1234),
+    latencies_df::DataFrame,
+    latencies_df_old::DataFrame,
+    xcorr::Vector{Vector{Float64}},
+    rng::AbstractRNG = MersenneTwister(1234),
 )
     @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
     ##you cannot calculate a standard deviation with less than 2 values
@@ -197,94 +224,69 @@ function heuristic2_randomize_latency_on_convex_xcorr!(
     end
 end
 
-# make sure the changes in the latencies are monoton
-# if a non monoton change is detected, revert the change and set the latency as fixed
-function heuristic1_monoton_latency_changes!(
-    latencies_df,
-    latencies_df_old,
-    latencies_df_old_old,
+"""
+    heuristic3_pick_closest_xcorr_peak!(latencies_df::DataFrame, latencies_df_old::DataFrame, xcorr::Vector{Vector{Float64}}; equality_threshold::Float64 = 0.9, onset::Int64 = 0)
+
+Check for multiple "competing" peaks in the cross correlation and pick the closest one to the previous latency.
+
+Any peak with a value > maximum * equality_threshold is considered a competing peak.
+Latencies marked as fixed are skipped.
+
+# Arguments
+- `latencies_df::DataFrame`: The current latencies DataFrame.
+- `latencies_df_old::DataFrame`: The previous latencies DataFrame. 
+    Necessary to calculate the closest peak to the previous latency.
+- `xcorr::Vector{Vector{Float64}}`: Cross correlation results for every epoch.
+
+# Keyword arguments (if needed)
+- `equality_threshold::Float64 = 0.9`: Threshold to determine which peaks are considered as competing.
+    Any peak with a value > maximum * equality_threshold is considered a competing peak, with maximum being the highest peak.
+    The threshold must be between 0 and 1.
+- `onset::Int64 = 0`: Onset of the kernel used in the cross correlation. Used to bring the latencies into the proper format.
+"""
+function heuristic3_pick_closest_xcorr_peak!(
+    latencies_df::DataFrame,
+    latencies_df_old::DataFrame,
+    xcorr::Vector{Vector{Float64}};
+    equality_threshold::Float64 = 0.9,
+    onset::Int64 = 0,
 )
-    for (i, row) in enumerate(eachrow(latencies_df))
+    @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
+    @assert size(latencies_df_old, 1) == size(latencies_df, 1) "latencies_df and latencies_df_old must have the same size"
+    @assert equality_threshold > 0 && equality_threshold <= 1 "equality_threshold must be between 0 and 1"
+    for (i, row) in enumerate(eachrow(latencies_df_old))
+        # skip fixed entries
         if row.fixed
             continue
         end
-        prev_change = latencies_df_old.latency[i] - latencies_df_old_old.latency[i]
-        new_change = row.latency - latencies_df_old.latency[i]
-        if prev_change > 0 && new_change < 0 || prev_change < 0 && new_change > 0
-            row.latency = latencies_df_old.latency[i]
-            row.fixed = true
-            @debug "heuristic1 reverted non-monoton latency change for epoch $i"
+        maxima = findmaxima(xcorr[i])
+        if isempty(maxima)
+            continue
         end
+        maximum_value = findmax(maxima.heights)[1]
+        competing_peaks = []
+        for (j, peak) in enumerate(maxima.indices)
+            if xcorr[i][peak] > maximum_value * equality_threshold
+                push!(competing_peaks, peak - onset)
+            end
+        end
+        if isempty(competing_peaks)
+            continue
+        end
+        closest_peak = argmin(abs.(competing_peaks .- row.latency))
+        latencies_df.latency[i] = competing_peaks[closest_peak]
     end
 end
 
-function filtering(x::Vector{Float64}, a::Int, b::Int)
-    # Ensure x is a column vector
-    x = vec(x)
-    n = length(x)
-    Y = fft(x)  # Compute FFT of input signal
 
-    # Create filter mask H based on the conditions
-    H = zeros(ComplexF64, n)
+"""
+    dspfilter(signal_to_filter::Vector{Float64}, filter_at::Int64, sampling_rate::Int64)
 
-    if b == 0
-        H[1] = Y[1]  # Keep only DC component
-    elseif a == 0 && b != 0
-        H[1:b+1] .= Y[1:b+1]  # Retain low frequencies up to b
-        H[end-b+1:end] .= Y[end-b+1:end]  # Retain symmetric frequencies
-    else
-        H[a+1:b+1] .= Y[a+1:b+1]  # Keep bandpass frequencies
-        H[end-b+1:end-a+1] .= Y[end-b+1:end-a+1]  # Retain symmetric part
-    end
-
-    # Compute inverse FFT and return the real part
-    f = real(ifft(H))
-    return f
-end
-
-# translated from matlab using gpt
-function filtering10(x::Vector{Float64}, a::Int, b::Int)
-    # Ensure x is a column vector and remove DC component
-    x = vec(x)
-    x0 = mean(x)
-    x = x .- x0  # Subtract mean to remove DC component
-
-    # Increase FFT resolution by a factor of 10
-    n = 10 * length(x)
-    x_padded = vcat(x, zeros(n - length(x)))  # Pad with zeros if n is greater than length(x)
-    Y = fft(x_padded)
-
-    # Create filter mask H based on conditions
-    H = zeros(ComplexF64, n)
-
-    if b == 0
-        H[1] = Y[1]  # Keep only DC component
-    elseif a == 0 && b != 0
-        H[1:b+1] .= Y[1:b+1]  # Retain low frequencies up to b
-        H[end-b+1:end] .= Y[end-b+1:end]  # Retain symmetric frequencies
-    else
-        H[a+1:b+1] .= Y[a+1:b+1]  # Keep bandpass frequencies
-        H[end-b+1:end-a+1] .= Y[end-b+1:end-a+1]  # Retain symmetric part
-    end
-
-    # Compute inverse FFT and return real part
-    f = real(ifft(H))
-
-    # Trim to original signal length
-    f = f[1:length(x)]
-
-    # Restore DC component if a == 0
-    if a == 0
-        f .+= x0
-    end
-
-    return f
-end
-
-function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
+Filter the given signal with a lowpass filter at the given sampling rate.
+"""
+function dspfilter(signal_to_filter::Vector{Float64}, filter_at::Int64, sampling_rate::Int64)
     @assert filter_at * 2 < sampling_rate "Filter frequency must be less than half the sampling rate"
     a = signal_to_filter
-    #for a in eachcol(signal_to_filter)
     p = round(
         3.3 / (
             min(max(filter_at * 0.25, 2.0), sampling_rate / 2 - filter_at) / sampling_rate
@@ -297,19 +299,104 @@ function dspfilter(signal_to_filter, filter_at::Int64, sampling_rate)
         Lowpass(filter_at / (sampling_rate / 2)),
         FIRWindow(DSP.hanning(order)),
     )
-    b = filtfilt(f, a)
-    #end
+    b::Vector{Float64} = filtfilt(f, a)
 
     return b
 end
 
+"""
+    save_interim_results!(results_vector::Vector{Vector}, evts, raw_erp::Matrix, s_erp::Matrix, r_erp::Matrix, c_erp::Matrix, c_latencies_df::Vector, cfg::RideConfig)
 
-# pad the erp to the epoch size using the given latency
-function pad_erp_to_epoch_size(erp, latency_from_epoch_start, cfg)
+Helper function to create a RideResults object for every channel and add it to the given results_vector.
+"""
+function save_interim_results!(
+    results_vector::Vector{Vector},
+    evts,
+    raw_erp::Matrix,
+    s_erp::Matrix,
+    r_erp::Matrix,
+    c_erp::Matrix,
+    c_latencies_df::Vector,
+    cfg::RideConfig,
+)
+    for i in axes(results_vector, 1)
+        r = create_results(
+            evts,
+            raw_erp[i, :],
+            s_erp[i, :],
+            r_erp[i, :],
+            c_erp[i, :],
+            c_latencies_df[i],
+            cfg,
+        )
+        push!(results_vector[i], r)
+    end
+end
+
+"""
+    create_results(evts, raw_erp::Vector, s_erp::Vector, r_erp::Vector, c_erp::Vector, c_latencies_df, cfg::RideConfig)
+
+Create a RideResults object from the given parameters.
+Pads component erps to be the same length as one epoch. Result also includes unpadded versions.
+Changes the c_latencies to be from stimulus onset instead of epoch start.
+
+# Returns
+- `result::RideResults` : The created RideResults object, the interim_results field is left empty.
+"""
+function create_results(
+    evts,
+    raw_erp::Vector,
+    s_erp::Vector,
+    r_erp::Vector,
+    c_erp::Vector,
+    c_latencies_df,
+    cfg::RideConfig,
+)
+    evts_s = @subset(evts, :event .== 'S')
+    evts_r = @subset(evts, :event .== 'R')
+
+    # pad erps to have the same size as one epoch
+    mean_s_latency = round(Int, ((-cfg.epoch_range[1] + cfg.s_range[1]) * cfg.sfreq))
+    evts_r_latencies_from_s = evts_r.latency - evts_s.latency
+    mean_r_latency =
+        round(Int, mean(evts_r_latencies_from_s) - (cfg.epoch_range[1] * cfg.sfreq))
+    mean_c_latency = round(Int, mean(c_latencies_df.latency))
+    s_erp_padded = pad_erp_to_epoch_size(s_erp, mean_s_latency, cfg)
+    r_erp_padded = pad_erp_to_epoch_size(r_erp, mean_r_latency, cfg)
+    c_erp_padded = pad_erp_to_epoch_size(c_erp, mean_c_latency, cfg)
+
+    #add the epoch range to the c_latencies as the output should be latency 
+    #from stimulus onset, not from epoch onset
+    c_latencies_from_stimulus_onset =
+        c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)
+
+    result = RideResults(
+        raw_erp = raw_erp,
+        s_erp = s_erp_padded,
+        r_erp = r_erp_padded,
+        c_erp = c_erp_padded,
+        s_erp_unpadded = s_erp,
+        r_erp_unpadded = r_erp,
+        c_erp_unpadded = c_erp,
+        c_latencies = c_latencies_from_stimulus_onset,
+    )
+    return result
+end
+
+"""
+    pad_erp_to_epoch_size(erp::Vector{Float64}, latency_from_epoch_start::Int64, cfg::RideConfig)
+
+Pad the given erp to the epoch size using the given latency.
+
+# Returns
+- `padded_erp::Vector{Float64}` : A new padded erp.
+"""
+function pad_erp_to_epoch_size(erp::Vector{Float64}, latency_from_epoch_start::Int64, cfg::RideConfig)
     epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
     padding_front_length = round(Int, latency_from_epoch_start)
     padding_front = zeros(Float64, max(padding_front_length, 0))
     padding_back_length = epoch_length - size(padding_front, 1) - size(erp, 1)
     padding_back = zeros(Float64, max(padding_back_length, 0))
-    return vcat(padding_front, erp, padding_back)
+    padded_erp::Vector{Float64} = vcat(padding_front, erp, padding_back)
+    return padded_erp
 end

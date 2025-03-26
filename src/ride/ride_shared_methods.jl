@@ -16,7 +16,7 @@ Calculate the cross correlation between the data and the kernel for each epoch a
 - `maxima::Vector{Int}` : Maxima of the cross correlation per epoch.
 - `onset::Int` : Onset of the kernel.
 """
-function findxcorrpeak(data::Matrix{Float64}, kernel::Vector{Float64}; window::Bool = false)
+function findxcorrpeak(data::Union{Matrix{Float64}, Vector{Float64}}, kernel::Vector{Float64}; window::Bool = false)
     #the purpose of this method is to find the peak of the cross correlation between the kernel and the data
     #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.
     weightedkernel = window ? kernel .* hanning(length(kernel)) : kernel

@@ -1,4 +1,4 @@
-include("../src/ride/ride_original_methods.jl")
+include("../src/ride/ride_classic_methods.jl")
 using UnicodePlots
 
 function createTestData()

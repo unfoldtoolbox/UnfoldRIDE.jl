@@ -357,13 +357,13 @@ function create_results(
 
     # pad erps to have the same size as one epoch
     mean_s_latency = round(Int, ((-cfg.epoch_range[1] + cfg.s_range[1]) * cfg.sfreq))
-    evts_r_latencies_from_s = evts_r.latency - evts_s.latency
-    mean_r_latency =
-        round(Int, mean(evts_r_latencies_from_s) - (cfg.epoch_range[1] * cfg.sfreq))
-    mean_c_latency = round(Int, mean(c_latencies_df.latency))
+    evts_r_latencies_from_s = (evts_r.latency - evts_s.latency)
+    median_r_latency =
+        round(Int, median(evts_r_latencies_from_s) + (cfg.r_range[1] * cfg.sfreq) - (cfg.epoch_range[1] * cfg.sfreq))
+    median_c_latency = round(Int, median(c_latencies_df.latency))
     s_erp_padded = pad_erp_to_epoch_size(s_erp, mean_s_latency, cfg)
-    r_erp_padded = pad_erp_to_epoch_size(r_erp, mean_r_latency, cfg)
-    c_erp_padded = pad_erp_to_epoch_size(c_erp, mean_c_latency, cfg)
+    r_erp_padded = pad_erp_to_epoch_size(r_erp, median_r_latency, cfg)
+    c_erp_padded = pad_erp_to_epoch_size(c_erp, median_c_latency, cfg)
 
     #add the epoch range to the c_latencies as the output should be latency 
     #from stimulus onset, not from epoch onset

@@ -31,10 +31,10 @@ begin
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = false,
+        save_interim_results = true,
     )
 
-    channels = 5
+    channels = 3
     data_channels_vector = Vector()
     noise = PinkNoise(; noiselevel = 1)
     for i in 1:channels
@@ -55,7 +55,7 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    @profview results = ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
+    results = ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
     for i in axes(results, 1)
         plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
     end

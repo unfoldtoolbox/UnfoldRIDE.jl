@@ -92,60 +92,6 @@ function simulate_default_plus_clean(simulation_inputs = simulation_inputs())
     return data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c
 end
 
-function simple_example_design()
-    design =
-        SingleSubjectDesign(;
-            conditions = Dict(
-                :condition => ["car", "face"],
-                :continuous => range(0, 1, length = 10),
-            ),
-        ) |> x -> RepeatDesign(x, 4)
-
-    # Define the components
-    s_component_p = LinearModelComponent(;
-        basis = p100(),
-        formula = @formula(0 ~ 1),
-        β = [simulation_inputs.s_beta],
-    )
-
-    s_component_n = LinearModelComponent(;
-        basis = n170(),
-        formula = @formula(0 ~ 1 + condition),
-        β = [simulation_inputs.s_beta, simulation_inputs.s_continous],
-    )
-
-    r_component = LinearModelComponent(;
-        basis = p300(),
-        formula = @formula(0 ~ 1 + continuous),
-        β = [simulation_inputs.r_beta, simulation_inputs.r_continous],
-    )
-
-    c_component = LinearModelComponent(;
-        basis = p100(), #vcat(p100().*0.3,zeros(7))+vcat(zeros(7),p100()), #
-        formula = @formula(0 ~ 1),
-        β = [simulation_inputs.c_beta],
-    )
-
-    onsetStimulus = UniformOnset(width = 0, offset = 200)
-
-    #onsetC =
-    #    UniformOnset(width = simulation_inputs.c_width, offset = simulation_inputs.c_offset)
-
-    #onsetR =
-    #    UniformOnset(width = simulation_inputs.r_width, offset = simulation_inputs.r_offset)
-
-    #multi_onset = MultiOnset(onsetStimulus, [onsetC, onsetR])
-
-    components = Dict('S' => [s_component_p, s_component_n])
-
-    data_s, evts_s =
-        simulate(MersenneTwister(1234), design, components, onsetStimulus, NoNoise())
-
-
-
-
-end
-
 function default_sequence_design(simulation_inputs = simulation_inputs())
     # Define the design
     design =

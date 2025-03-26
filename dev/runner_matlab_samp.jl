@@ -71,12 +71,18 @@ begin
         heuristic1 = true,
         heuristic2 = true,
         heuristic3 = true,
-        save_interim_results = true,
+        save_interim_results = false,
     )
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldModeRIDE, data, evts, cfg)
-    plot_interim_results(reshape(data[44,:],(1,:)), evts, results[44], cfg)
+    results = ride_algorithm(UnfoldMode, reshape(data[44,:],(1,:)), evts, cfg)
+    plot_interim_results(data[44,:], evts, results[1], cfg)
+end
+
+#benchmark all channels
+using BenchmarkTools
+if true == false
+    @benchmark ride_algorithm(UnfoldMode, data, evts, cfg)
 end
 
 

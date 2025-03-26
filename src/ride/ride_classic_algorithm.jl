@@ -74,17 +74,6 @@ function ride_algorithm(
     n, data_epoched_r = Unfold.drop_missing_epochs(evts_r, data_epoched_r)
     r_erp = median(data_epoched_r, dims = 3)
 
-    #calculate initial erp of C by subtracting S and R from the data
-    data_subtracted_s_and_r = subtract_to_data_epoched(
-        data_reshaped,
-        evts_c,
-        c_range_adj,
-        [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
-        cfg.sfreq,
-    )
-    c_erp = median(data_subtracted_s_and_r, dims = 3)
-    ##
-
     ## save interim results
     if cfg.save_interim_results
         push!(
@@ -94,7 +83,7 @@ function ride_algorithm(
                 raw_erp,
                 s_erp[1, :, 1],
                 r_erp[1, :, 1],
-                c_erp[1, :, 1],
+                zeros(1),
                 c_latencies_df,
                 cfg,
             ),
@@ -103,7 +92,6 @@ function ride_algorithm(
 
     c_latencies_df_prev_prev = nothing
     c_latencies_df_prev = nothing
-
 
     ## iteration start
     for i in range(1, cfg.iteration_limit)

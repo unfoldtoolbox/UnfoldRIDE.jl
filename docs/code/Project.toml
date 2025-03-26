@@ -10,5 +10,5 @@ UnfoldSim = "ed8ae6d2-84d3-44c6-ab46-0baf21700804"
 UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [sources]
-UnfoldRIDE = {rev = "initial_commit", url = "https://github.com/unfoldtoolbox/UnfoldRIDE.jl"}
+UnfoldRIDE = {rev = "main", url = "https://github.com/unfoldtoolbox/UnfoldRIDE.jl"}
 UnfoldSim = {rev = "v4.0", url = "https://github.com/unfoldtoolbox/UnfoldSim.jl"}

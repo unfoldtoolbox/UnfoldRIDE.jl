@@ -37,7 +37,7 @@ begin
         sfreq = 100,
         s_range = [-0.2, 0.4],
         r_range = [0, 0.8],
-        c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
+        c_range = [-0.4, 0.4],
         c_estimation_range = [-0.1, 0.9],
         epoch_range = [-0.3, 1.6],
         iteration_limit = 5,
@@ -55,6 +55,15 @@ begin
         'S',
         'R',
         cfg.sfreq,
+    )
+
+    cfg = RideConfig(
+        sfreq = 100,
+        s_range = [-0.2, 0.4],
+        r_range = [0, 0.8],
+        c_range = [-0.4, 0.4],
+        c_estimation_range = [-0.1, 0.9],
+        epoch_range = [-0.3, 1.6],
     )
 
     #remove the C events from the evts table, these will be estimated by the ride algorithm

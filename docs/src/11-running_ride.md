@@ -6,7 +6,7 @@ For this tutorial, we use the data from the [data simulation example](./10-data_
 First we include the data simulation and add some additional noise to the data
 
 ```julia
-include("simulate_variable_component_sequence")
+include("simulate_variable_latency_sequence.jl")
 
 #add some noise to the simulated data
 data_noisy = copy(data)
@@ -33,8 +33,8 @@ begin
     )
     #run the ride algorithm
     #We only have one channel, so we only need the first entry from the results vector.
-    resultsClassic = ride_algorithm(ClassicRIDE, data_noisy, evts_without_c, cfg)[1]
-    resultsUnfold = ride_algorithm(UnfoldModeRIDE, data_noisy, evts_without_c, cfg)[1]
+    resultsClassic = ride_algorithm(ClassicMode, data_noisy, evts_without_c, cfg)[1]
+    resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)[1]
 end
 ```
 
@@ -70,6 +70,7 @@ end
 ![Results for Classic and Unfold RIDE](../images/classicAndUnfoldTutorialResults.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
 
 <!---
+TODO: add expected results
 Since this is the result of simulated data, we can easily calculate what output we should expect from the component definitions:
 ```julia
 onset_stimulus = UniformOnset(width = 0, offset = 100)

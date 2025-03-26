@@ -2,7 +2,7 @@
 using Statistics
 using Unfold
 
-include("simulate_variable_component_sequence")
+include("simulate_variable_latency_sequence.jl")
 
 #add some noise to the simulated data
 data_noisy = copy(data)

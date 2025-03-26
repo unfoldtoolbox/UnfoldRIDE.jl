@@ -1,6 +1,6 @@
 # Simulation with Variable Latency Components
 
-You can find the code for this tutorial [here](../code/simulate_variable_component_sequence), using this [Project.toml](../code/Project.toml).
+You can find the code for this tutorial [here](../code/simulate_variable_latency_sequence.jl), using this [Project.toml](../code/Project.toml).
 
 <!---
 - simulating data is reasonable?

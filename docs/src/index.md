@@ -6,9 +6,6 @@ CurrentModule = UnfoldRIDE
 
 Welcome to the documentation for [UnfoldRIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl), a re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.htm) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
 
-If you need more information on BIDS, a quick overview and further reading can be found at [Reference/Brain Imaging Data Structure](./generated/reference/BIDS.md)
-
-
 ```@raw html
 <div style="width:60%; margin: auto;">
 </div>

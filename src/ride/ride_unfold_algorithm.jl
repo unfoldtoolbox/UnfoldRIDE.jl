@@ -13,7 +13,6 @@ function ride_algorithm(
             cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
     ## data_preparation
-    data_reshaped = reshape(data, (1, :))
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
     interim_results = Vector{Vector}()
@@ -26,7 +25,7 @@ function ride_algorithm(
     #cut evts to match the determined number of epochs
     #the resulting data_epoched is also used for the c latency estimation
     data_epoched, data_epoched_times = Unfold.epoch(
-        data = data_reshaped,
+        data = data,
         tbl = evts_s,
         τ = cfg.epoch_range,
         sfreq = cfg.sfreq,

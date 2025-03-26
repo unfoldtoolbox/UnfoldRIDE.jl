@@ -55,14 +55,14 @@ begin
     evts_without_c = @subset(evts, :event .!= 'C')
 
     #run the ride algorithm
-    results = ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
+    @profview results = ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
     for i in axes(results, 1)
         plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
     end
 end
 
 if true == false
-    @benchmark ride_algorithm(ClassicRIDE, data_channels, evts_without_c, cfg)
+    @benchmark ride_algorithm(ClassicMode, data_channels, evts_without_c, cfg)
     
-    @benchmark ride_algorithm(UnfoldModeRIDE, data_channels, evts_without_c, cfg)
+    @benchmark ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
 end

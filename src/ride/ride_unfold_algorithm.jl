@@ -24,12 +24,8 @@ function ride_algorithm(
     #epoch data with the cfg.epoch_range to see how many epochs we have
     #cut evts to match the determined number of epochs
     #the resulting data_epoched is also used for the c latency estimation
-    data_epoched, data_epoched_times = Unfold.epoch(
-        data = data,
-        tbl = evts_s,
-        τ = cfg.epoch_range,
-        sfreq = cfg.sfreq,
-    )
+    data_epoched, data_epoched_times =
+        Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
     n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
     number_epochs = size(data_epoched, 3)
     raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
@@ -97,7 +93,16 @@ function ride_algorithm(
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+        save_interim_results!(
+            interim_results,
+            evts,
+            raw_erp,
+            s_erp,
+            r_erp,
+            c_erp,
+            c_latencies_df,
+            cfg,
+        )
     end
 
     ## initial pattern matching with the first calculated c_erp
@@ -118,7 +123,16 @@ function ride_algorithm(
 
     ## save interim results
     if cfg.save_interim_results
-        save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+        save_interim_results!(
+            interim_results,
+            evts,
+            raw_erp,
+            s_erp,
+            r_erp,
+            c_erp,
+            c_latencies_df,
+            cfg,
+        )
     end
 
 
@@ -180,13 +194,30 @@ function ride_algorithm(
 
         ## save interim results
         if cfg.save_interim_results
-            save_interim_results!(interim_results, evts, raw_erp, s_erp, r_erp, c_erp, c_latencies_df, cfg)
+            save_interim_results!(
+                interim_results,
+                evts,
+                raw_erp,
+                s_erp,
+                r_erp,
+                c_erp,
+                c_latencies_df,
+                cfg,
+            )
         end
     end
 
     results = Vector{RideResults}()
     for i in axes(data, 1)
-        r = create_results(evts, raw_erp[i, :], s_erp[i, :], r_erp[i, :], c_erp[i, :], c_latencies_df[i], cfg)
+        r = create_results(
+            evts,
+            raw_erp[i, :],
+            s_erp[i, :],
+            r_erp[i, :],
+            c_erp[i, :],
+            c_latencies_df[i],
+            cfg,
+        )
         r.interim_results = interim_results[i]
         push!(results, r)
     end

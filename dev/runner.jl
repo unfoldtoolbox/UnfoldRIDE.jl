@@ -25,8 +25,8 @@ begin
     #sim_inputs.s_offset = 70
     data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
         simulate_default_plus_clean(sim_inputs)
-    plot_first_three_epochs_of_raw_data(data_clean_s, evts);
-    plot_first_three_epochs_of_raw_data(data, evts);
+    plot_first_three_epochs_of_raw_data(data_clean_s, evts)
+    plot_first_three_epochs_of_raw_data(data, evts)
 end
 
 #run the ride algorithm on the simulated data

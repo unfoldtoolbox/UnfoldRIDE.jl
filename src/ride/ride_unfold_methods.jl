@@ -37,13 +37,25 @@ function unfold_decomposition(data, evts_with_c, cfg)
         data,
     )
     c_table = coeftable(m)
-    s_erp = Matrix{Float64}(undef, size(data, 1), size(@subset(c_table, :eventname .== 'S', :channel .== 1),1))
-    r_erp = Matrix{Float64}(undef, size(data, 1), size(@subset(c_table, :eventname .== 'R', :channel .== 1),1))
-    c_erp = Matrix{Float64}(undef, size(data, 1), size(@subset(c_table, :eventname .== 'C', :channel .== 1),1))
+    s_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'S', :channel .== 1), 1),
+    )
+    r_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'R', :channel .== 1), 1),
+    )
+    c_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'C', :channel .== 1), 1),
+    )
     for i in range(1, size(data, 1))
-        s_erp[i,:] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
-        r_erp[i,:] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
-        c_erp[i,:] = @subset(c_table, :eventname .== 'C', :channel .== i).estimate
+        s_erp[i, :] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
+        r_erp[i, :] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
+        c_erp[i, :] = @subset(c_table, :eventname .== 'C', :channel .== i).estimate
     end
 
     yhat = predict(m, exclude_basis = 'C', overlap = true)

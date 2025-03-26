@@ -37,8 +37,8 @@ begin
     channels = 3
     data_channels_vector = Vector()
     noise = PinkNoise(; noiselevel = 1)
-    for i in 1:channels
-        data_channel1 = reshape(deepcopy(data), (1,:))
+    for i = 1:channels
+        data_channel1 = reshape(deepcopy(data), (1, :))
         UnfoldSim.add_noise!(MersenneTwister(i), noise, data_channel1)
         push!(data_channels_vector, data_channel1)
     end
@@ -47,7 +47,7 @@ begin
 
 
     for i in axes(data_channels, 1)
-        plot_first_three_epochs_of_raw_data(reshape(data_channels[i,:], (1,:)), evts);
+        plot_first_three_epochs_of_raw_data(reshape(data_channels[i, :], (1, :)), evts)
     end
 
 
@@ -57,12 +57,12 @@ begin
     #run the ride algorithm
     results = ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
     for i in axes(results, 1)
-        plot_interim_results(reshape(data_channels[i,:], (1,:)), evts, results[i], cfg)
+        plot_interim_results(reshape(data_channels[i, :], (1, :)), evts, results[i], cfg)
     end
 end
 
 if true == false
     @benchmark ride_algorithm(ClassicMode, data_channels, evts_without_c, cfg)
-    
+
     @benchmark ride_algorithm(UnfoldMode, data_channels, evts_without_c, cfg)
 end

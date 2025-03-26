@@ -23,6 +23,6 @@ include("./ride/ride_shared_methods.jl")
 export ride_algorithm, ride_algorithm_unfold
 
 # Export types
-export RideConfig, ClassicMode , UnfoldMode
+export RideConfig, ClassicMode, UnfoldMode
 
 end

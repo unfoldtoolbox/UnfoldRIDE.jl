@@ -48,10 +48,10 @@ end
 begin
     path = "dev/data/matlab_ride_samp_face.h5"
     data_channels_vector = Vector()
-    for i in 1:65
-        data_channel1 = reshape(import_data_from_hdf5(path, i)[1], (1,:))
+    for i = 1:65
+        data_channel1 = reshape(import_data_from_hdf5(path, i)[1], (1, :))
         push!(data_channels_vector, data_channel1)
-    end 
+    end
     data = reduce(vcat, data_channels_vector)
     evts = import_data_from_hdf5(path, 1)[2]
     @assert(evts == import_data_from_hdf5(path, 2)[2])
@@ -75,8 +75,8 @@ begin
     )
 
     #run the ride algorithm
-    results = ride_algorithm(UnfoldMode, reshape(data[44,:],(1,:)), evts, cfg)
-    plot_interim_results(data[44,:], evts, results[1], cfg)
+    results = ride_algorithm(UnfoldMode, reshape(data[44, :], (1, :)), evts, cfg)
+    plot_interim_results(data[44, :], evts, results[1], cfg)
 end
 
 #benchmark all channels

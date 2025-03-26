@@ -16,11 +16,16 @@ Calculate the cross correlation between the data and the kernel for each epoch a
 - `maxima::Vector{Int}` : Maxima of the cross correlation per epoch.
 - `onset::Int` : Onset of the kernel.
 """
-function findxcorrpeak(data::Union{Matrix{Float64}, Vector{Float64}}, kernel::Vector{Float64}; window::Bool = false)
+function findxcorrpeak(
+    data::Union{Matrix{Float64},Vector{Float64}},
+    kernel::Vector{Float64};
+    window::Bool = false,
+)
     #the purpose of this method is to find the peak of the cross correlation between the kernel and the data
     #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.
     weightedkernel = window ? kernel .* hanning(length(kernel)) : kernel
-    xc::Vector{Vector{Float64}} = xcorr.(eachcol(data), Ref(weightedkernel); padmode = :none)
+    xc::Vector{Vector{Float64}} =
+        xcorr.(eachcol(data), Ref(weightedkernel); padmode = :none)
     onset::Int = length(kernel)
     maxima::Vector{Int} = [findmax(x)[2] for x in xc] .- onset
     return xc, maxima, onset
@@ -39,13 +44,14 @@ Multi channel version of initial_peak_estimation.
 # Returns
 - `latencies_df_vector::Vector{DataFrame}` : Vector of DataFrames containing the estimated latencies for every channel. Latencies are from the start of the epoch to the beginning of the c_range.
 """
-function initial_peak_estimation(data_continous::Matrix{Float64}, evts::DataFrame, cfg::RideConfig)
+function initial_peak_estimation(
+    data_continous::Matrix{Float64},
+    evts::DataFrame,
+    cfg::RideConfig,
+)
     latencies_df_vector = Vector()
     for i = 1:size(data_continous, 1)
-        push!(
-            latencies_df_vector,
-            initial_peak_estimation(data_continous[i, :], evts, cfg),
-        )
+        push!(latencies_df_vector, initial_peak_estimation(data_continous[i, :], evts, cfg))
     end
     return latencies_df_vector
 end
@@ -64,7 +70,11 @@ The resulting latencies are from the start of the epoch to the beginning of the 
 # Returns
 - `latencies_df::DataFrame` : DataFrame containing the estimated latencies for every epoch and a fixed=false column. Latencies are from the start of the epoch to the beginning of the c_range.
 """
-function initial_peak_estimation(data_continous::Array{Float64}, evts::DataFrame, cfg::RideConfig)
+function initial_peak_estimation(
+    data_continous::Array{Float64},
+    evts::DataFrame,
+    cfg::RideConfig,
+)
     evts_s = @subset(evts, :event .== 'S')
     data_residuals_epoched, times = Unfold.epoch(
         data = data_continous,
@@ -76,7 +86,8 @@ function initial_peak_estimation(data_continous::Array{Float64}, evts::DataFrame
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
     #Peak estimation for initial c latencies for every epoch
     for a in (1:size(data_residuals_epoched, 3))
-        range_start =  round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
+        range_start =
+            round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
         range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
         range = range_start:range_end
         #find maximum in the given c_estimation range
@@ -284,7 +295,11 @@ end
 
 Filter the given signal with a lowpass filter at the given sampling rate.
 """
-function dspfilter(signal_to_filter::Vector{Float64}, filter_at::Int64, sampling_rate::Int64)
+function dspfilter(
+    signal_to_filter::Vector{Float64},
+    filter_at::Int64,
+    sampling_rate::Int64,
+)
     @assert filter_at * 2 < sampling_rate "Filter frequency must be less than half the sampling rate"
     a = signal_to_filter
     p = round(
@@ -358,8 +373,11 @@ function create_results(
     # pad erps to have the same size as one epoch
     mean_s_latency = round(Int, ((-cfg.epoch_range[1] + cfg.s_range[1]) * cfg.sfreq))
     evts_r_latencies_from_s = (evts_r.latency - evts_s.latency)
-    median_r_latency =
-        round(Int, median(evts_r_latencies_from_s) + (cfg.r_range[1] * cfg.sfreq) - (cfg.epoch_range[1] * cfg.sfreq))
+    median_r_latency = round(
+        Int,
+        median(evts_r_latencies_from_s) + (cfg.r_range[1] * cfg.sfreq) -
+        (cfg.epoch_range[1] * cfg.sfreq),
+    )
     median_c_latency = round(Int, median(c_latencies_df.latency))
     s_erp_padded = pad_erp_to_epoch_size(s_erp, mean_s_latency, cfg)
     r_erp_padded = pad_erp_to_epoch_size(r_erp, median_r_latency, cfg)
@@ -391,7 +409,11 @@ Pad the given erp to the epoch size using the given latency.
 # Returns
 - `padded_erp::Vector{Float64}` : A new padded erp.
 """
-function pad_erp_to_epoch_size(erp::Vector{Float64}, latency_from_epoch_start::Int64, cfg::RideConfig)
+function pad_erp_to_epoch_size(
+    erp::Vector{Float64},
+    latency_from_epoch_start::Int64,
+    cfg::RideConfig,
+)
     epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
     padding_front_length = round(Int, latency_from_epoch_start)
     padding_front = zeros(Float64, max(padding_front_length, 0))

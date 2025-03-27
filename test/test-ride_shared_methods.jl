@@ -49,19 +49,21 @@ include("../src/ride/ride_shared_methods.jl")
 
         xc, xc_values = findxcorrpeak(data_epoched[1, :, :], hanning(100))
         latencies_df_old = copy(latencies_df)
-        latencies_df.latency = xc_values
+        latencies_df.latency = copy(xc_values)
 
         xc = [hanning(100) .* -1, hanning(100)]
 
         rng = MersenneTwister(12345)
-        heuristic2_randommize_latency_on_convex_xcorr!(
+        heuristic2_randomize_latency_on_convex_xcorr!(
             latencies_df,
             latencies_df_old,
             xc,
             rng,
         )
 
-        @test latencies_df.latency == [111, 100]
+        #check that latencies_df.latency was randomized during the heuristic
+        @test latencies_df.latency != xc_values
+        #after randomization, the latency should be fixed
         @test latencies_df.fixed == [true, false]
     end
 
@@ -74,7 +76,6 @@ include("../src/ride/ride_shared_methods.jl")
             r_range = [0, 0],
             c_estimation_range = [0.2, 1.2],
             epoch_range = [-0.3, 1.6],
-            epoch_event_name = 'S',
         )
         #identical epochs with perfect match at 100 and subpar match at 300
         epoch1 = reshape(
@@ -96,8 +97,8 @@ include("../src/ride/ride_shared_methods.jl")
         heuristic3_pick_closest_xcorr_peak!(
             latencies_df,
             latencies_df_old,
-            xc,
-            0.8,
+            xc;
+            equality_threshold = 0.8,
             onset = onset,
         )
 

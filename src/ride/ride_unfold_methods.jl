@@ -10,18 +10,16 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
     xc, result, onset = findxcorrpeak(data_residuals_epoched[1, :, :], c_erp)
-    c_latencies = result .- round(Int, (c_range_adjusted(cfg.c_range)[1] * cfg.sfreq))
 
     for (i, row) in enumerate(eachrow(latencies_df))
         if (row.fixed)
             continue
         end
-        row.latency = c_latencies[i]
+        row.latency = result[i]
     end
 
     return latencies_df, xc, onset
 end
-
 
 function unfold_decomposition(data, evts_with_c, cfg)
     #unfold deconvolution; TODO: make the fit more general, i.e. let the user provide the model structure
@@ -39,9 +37,26 @@ function unfold_decomposition(data, evts_with_c, cfg)
         data,
     )
     c_table = coeftable(m)
-    s_erp = c_table[c_table.eventname.=='S', :estimate]
-    r_erp = c_table[c_table.eventname.=='R', :estimate]
-    c_erp = c_table[c_table.eventname.=='C', :estimate]
+    s_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'S', :channel .== 1), 1),
+    )
+    r_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'R', :channel .== 1), 1),
+    )
+    c_erp = Matrix{Float64}(
+        undef,
+        size(data, 1),
+        size(@subset(c_table, :eventname .== 'C', :channel .== 1), 1),
+    )
+    for i in range(1, size(data, 1))
+        s_erp[i, :] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
+        r_erp[i, :] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
+        c_erp[i, :] = @subset(c_table, :eventname .== 'C', :channel .== i).estimate
+    end
 
     yhat = predict(m, exclude_basis = 'C', overlap = true)
     y = data

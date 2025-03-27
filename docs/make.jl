@@ -18,4 +18,7 @@ makedocs(;
     pages = ["index.md"; numbered_pages],
 )
 
-deploydocs(; repo = "github.com/unfoldtoolbox/UnfoldRIDE.jl")
+deploydocs(; 
+    repo = "github.com/unfoldtoolbox/UnfoldRIDE.jl",
+    push_preview = true,
+    devbranch = "main")

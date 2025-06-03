@@ -1,6 +1,6 @@
 # Running Classic and Unfold RIDE
 
-You can find the code for this tutorial [here](../code/running_ride.jl), using this [Project.toml](../code/Project.toml).
+You can find the code for this tutorial [here](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/simulate_variable_latency_sequence.jl), using this [Project.toml](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/Project.toml).
 
 For this tutorial, we use the data from the [data simulation example](./10-data_simulation.md).
 First we include the data simulation and add some additional noise to the data
@@ -67,7 +67,7 @@ end
 ```
 </details>
 
-![Results for Classic and Unfold RIDE](../images/classicAndUnfoldTutorialResults.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
+![Results for Classic and Unfold RIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/images/simulated_EEG_tutorial.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
 
 <!---
 TODO: add expected results

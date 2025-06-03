@@ -1,6 +1,6 @@
 # Simulation with Variable Latency Components
 
-You can find the code for this tutorial [here](../code/simulate_variable_latency_sequence.jl), using this [Project.toml](../code/Project.toml).
+You can find the code for this tutorial [here](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/simulate_variable_latency_sequence.jl), using this [Project.toml](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/Project.toml).
 
 <!---
 - simulating data is reasonable?
@@ -163,7 +163,7 @@ end
 
 </details>
 
-![simulated_eeg_graph](../images/simulated_EEG_tutorial.png "Simulated EEG data with two variable latency components, C and R")
+![simulated_eeg_graph](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/images/classicAndUnfoldTutorialResults.png "Simulated EEG data with two variable latency components, C and R")
 
 Finally, to run the RIDE algorithm, we need to remove the C events from the evts dataframe. They will be estimated during the algorithm and can then be compared to the actual latencies.
 

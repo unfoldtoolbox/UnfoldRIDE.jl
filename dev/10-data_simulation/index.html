@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Simulation with Variable Latency Components · UnfoldRIDE.jl</title><meta name="title" content="Simulation with Variable Latency Components · UnfoldRIDE.jl"/><meta property="og:title" content="Simulation with Variable Latency Components · UnfoldRIDE.jl"/><meta property="twitter:title" content="Simulation with Variable Latency Components · UnfoldRIDE.jl"/><meta name="description" content="Documentation for UnfoldRIDE.jl."/><meta property="og:description" content="Documentation for UnfoldRIDE.jl."/><meta property="twitter:description" content="Documentation for UnfoldRIDE.jl."/><meta property="og:url" content="https://unfoldtoolbox.github.io/UnfoldRIDE.jl/10-data_simulation/"/><meta property="twitter:url" content="https://unfoldtoolbox.github.io/UnfoldRIDE.jl/10-data_simulation/"/><link rel="canonical" href="https://unfoldtoolbox.github.io/UnfoldRIDE.jl/10-data_simulation/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">UnfoldRIDE.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">UnfoldRIDE.jl Documentation</a></li><li class="is-active"><a class="tocitem" href>Simulation with Variable Latency Components</a></li><li><a class="tocitem" href="../11-running_ride/">Running Classic and Unfold RIDE</a></li><li><a class="tocitem" href="../90-contributing/">Contributing guidelines</a></li><li><a class="tocitem" href="../91-developer/">Developer documentation</a></li><li><a class="tocitem" href="../95-reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Simulation with Variable Latency Components</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Simulation with Variable Latency Components</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/main/docs/src/10-data_simulation.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Simulation-with-Variable-Latency-Components"><a class="docs-heading-anchor" href="#Simulation-with-Variable-Latency-Components">Simulation with Variable Latency Components</a><a id="Simulation-with-Variable-Latency-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-with-Variable-Latency-Components" title="Permalink"></a></h1><p>You can find the code for this tutorial <a href="https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/simulate_variable_latency_sequence.jl">here</a>, using this <a href="https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/Project.toml">Project.toml</a>.</p><p>&lt;!–-</p><ul><li>simulating data is reasonable?</li><li>to run ride your simulation data needs a variable latency component</li><li>UnfoldSim can be used to generate the data</li><li>Modification to UnfoldSim is required as seen here</li></ul><p>–&gt;</p><p>To properly run the RIDE algorithm, we need a dataset including at least one component with a variable latency. <a href="https://github.com/unfoldtoolbox/UnfoldSim.jl/tree/main">UnfoldSim</a> can be used to generate the EEG data and the <code>SequenceDesign</code> allows us to define a sequence of components with one shared onset. </p><p>To simulate a variable latency, we need a bit more control over the onset of each component. The following code creates a new <code>SequenceOnset</code>, which allows us to define one onset for the stimulus and individual onsets for each component. In addition to defining individual onsets, we also modify the <code>simulate_onsets</code> function to apply all our component onsets from the stimulus onset. The default behaviour would be to simply apply the onsets from the previous component, which wouldn&#39;t make any sense for this scenario.</p><pre><code class="language-julia hljs">@with_kw struct SequenceOnset &lt;: AbstractOnset
+    stimulus_onset::AbstractOnset
+    components_onset::Vector{AbstractOnset}
+end
+
+function UnfoldSim.simulate_onsets(rng, onset::SequenceOnset, simulation::Simulation)
+    #calculate stimulus onsets
+    stimulus_onsets =
+        simulate_interonset_distances(rng, onset.stimulus_onset, simulation.design)
+    stimulus_offset_accumulated = accumulate(+, stimulus_onsets, dims = 1, init = 0)
+
+    #calculate component offsets
+    components_onsets = Vector{Vector{Int}}()
+    for obj in onset.components_onset
+        Random.seed!(rng, rand(rng, 1:10000))
+        push!(components_onsets, simulate_interonset_distances(rng, obj, simulation.design))
+    end
+
+    #combine the stimulus offsets and component offsets into one vector
+    result = Vector{Int}()
+    for i in axes(stimulus_offset_accumulated, 1)
+        current_offset = stimulus_offset_accumulated[i]
+        push!(result, current_offset)
+        for component_onsets in components_onsets
+            push!(result, current_offset + component_onsets[i])
+        end
+    end
+
+    #cut result to the design size
+    result = result[1:size(simulation.design)]
+    return result
+end</code></pre><p>&lt;!–-</p><ul><li>SequenceDesign is used, which is only available from the github branch (designated in the </li></ul><p>Project.toml)</p><ul><li>If you want to learn more about what&#39;s happening here, we recommend checking out UnfoldSim documentation</li></ul><p>–-&gt;</p><p>In RIDE, we generally differentiate between three different component clusters: S,C and R:</p><ul><li>S represents the Stimulus</li><li>R represents a response to the Stimulus with a known variable latency</li><li>C represents a response to the Stimulus with an uknown variable latency</li></ul><p>We define components for each of these component clusters and use <a href="https://github.com/unfoldtoolbox/UnfoldSim.jl/tree/main">UnfoldSim</a> to model them. If there are questions about the next code section, we recommend checking out the <a href="https://unfoldtoolbox.github.io/UnfoldSim.jl/stable/generated/tutorials/quickstart/#Specify-the-simulation-ingredients">UnfoldSim documentation</a>.</p><pre><code class="language-julia hljs">#Define the design
+design =
+    SingleSubjectDesign(; conditions = Dict(:cond =&gt; [&quot;car&quot;, &quot;face&quot;])) |&gt;
+    x -&gt; RepeatDesign(x, 4)
+
+#Create a sequence design with three components (S, C, R)
+sequence_design = SequenceDesign(design, &quot;SCR&quot;)
+
+# Define the components
+s_component_1 =
+    LinearModelComponent(; basis = vcat(p100()), formula = @formula(0 ~ 1), β = [2])
+s_component_2 =
+    LinearModelComponent(; basis = n170(), formula = @formula(0 ~ 1 + cond), β = [2, 0])
+c_component =
+    LinearModelComponent(; basis = p100(), formula = @formula(0 ~ 1 + cond), β = [-4, 2])
+r_component =
+    LinearModelComponent(; basis = p100(), formula = @formula(0 ~ 1 + cond), β = [6, 0])
+
+#offset of the stimulus defines the distance between two epochs
+#offsets for the components are applied from the stimulus due to the custom simulate_onsets method
+#the latencies for the first three epochs would be:
+# stimulus  = 100,      200,        300
+# c         = 110:140,  210:240,    310:340
+# r         = 120:160,  220:260,    320:360
+onset_stimulus = UniformOnset(width = 0, offset = 100)
+onset_c = UniformOnset(width = 30, offset = 10)
+onset_r = UniformOnset(width = 40, offset = 20)
+sequence_onset = SequenceOnset(onset_stimulus, [onset_c, onset_r])
+#the components dict has to be consistent with the sequence design, i.e. contain S, C, R
+components =
+    Dict(&#39;S&#39; =&gt; [s_component_1, s_component_2], &#39;C&#39; =&gt; [c_component], &#39;R&#39; =&gt; [r_component])
+
+#simulate the data
+data, evts = simulate(
+    MersenneTwister(7),
+    sequence_design,
+    components,
+    sequence_onset,
+    PinkNoise(noiselevel = 0.1),
+)</code></pre><p>Running the code generates the following data. The noise is set to a relatively low 0.1 compared to the max amplitude of 6, which clearly shows the individual components. Note how the C and R component always appear after the Stimulus, but the order of C and R isn&#39;t consistent. It is entirely determined by our onset definitions in the previous code segment.</p><p>&lt;details&gt; &lt;summary&gt;Code used for Graph Creation&lt;/summary&gt;</p><pre><code class="language-julia hljs">#plotting
+begin
+    f = Figure(size = (1000, 400))
+    ax = Axis(
+        f[1, 1],
+        title = &quot;Simulated EEG data&quot;,
+        titlesize = 18,
+        xlabel = &quot;Time [samples]&quot;,
+        ylabel = &quot;Amplitude [µV]&quot;,
+        xlabelsize = 16,
+        ylabelsize = 16,
+        xgridvisible = false,
+        ygridvisible = false,
+        limits = ((90, 390), nothing),
+    )
+
+    lines!(data; color = &quot;black&quot;)
+
+    #plot the event onsets
+    evts_s = @subset(evts, :event .== &#39;S&#39;)
+    evts_c = @subset(evts, :event .== &#39;C&#39;)
+    evts_r = @subset(evts, :event .== &#39;R&#39;)
+
+    vlines!(
+        ax,
+        evts_s.latency,
+        color = &quot;red&quot;,
+        linestyle = :dash,
+        linewidth = 2,
+        label = &quot;Stimulus&quot;,
+    )
+    vlines!(
+        ax,
+        evts_c.latency,
+        color = &quot;green&quot;,
+        linestyle = :dash,
+        linewidth = 2,
+        label = &quot;C&quot;,
+    )
+    vlines!(
+        ax,
+        evts_r.latency,
+        color = &quot;blue&quot;,
+        linestyle = :dash,
+        linewidth = 2,
+        label = &quot;R&quot;,
+    )
+    axislegend(&quot;Event onset&quot;; unique = true)
+    display(f)
+end</code></pre><p>&lt;/details&gt;</p><p><img src="https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/images/classicAndUnfoldTutorialResults.png &quot;Simulated EEG data with two variable latency components, C and R&quot;" alt="simulated_eeg_graph"/></p><p>Finally, to run the RIDE algorithm, we need to remove the C events from the evts dataframe. They will be estimated during the algorithm and can then be compared to the actual latencies.</p><pre><code class="language-julia hljs">#only keep the S and R events, the C events will be calculated by the RIDE algorithm
+evts_without_c = @subset(evts, :event .== &#39;S&#39; .|| :event .== &#39;R&#39;)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« UnfoldRIDE.jl Documentation</a><a class="docs-footer-nextpage" href="../11-running_ride/">Running Classic and Unfold RIDE »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Tuesday 2 September 2025 10:46">Tuesday 2 September 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

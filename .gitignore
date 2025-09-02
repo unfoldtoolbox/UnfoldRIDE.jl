@@ -10,4 +10,8 @@ coverage
 docs/build/
 env
 node_modules
+*.txt
+/*.png
+/*.h5
+*.so
 .vscode/

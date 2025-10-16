@@ -28,7 +28,7 @@ function ride_algorithm(
 
     ## data_preparation
     data_reshaped = reshape(data, (1, :))
-    evts_s = @subset(evts, :event .== 'S')
+    evts_s = @subset(evts, :event .== 'S') # TODO: Let user define event names
     evts_r = @subset(evts, :event .== 'R')
     interim_results = Vector{RideResults}()
 
@@ -134,7 +134,7 @@ function ride_algorithm(
             [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
             cfg.sfreq,
         )
-        if cfg.filtering
+        if cfg.filtering # TODO: Check if this is correct; also check for filter artefacts
             data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, 20)
         end
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(

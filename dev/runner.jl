@@ -12,7 +12,7 @@ using BenchmarkTools
 #simulate data
 begin
     sim_inputs = simulation_inputs()
-    sim_inputs.noise = PinkNoise(; noiselevel = 1)
+    sim_inputs.noise = PinkNoise(; noiselevel = 0)
     #sim_inputs.c_width = 30
     #sim_inputs.c_offset = 10
     #sim_inputs.r_width = 60
@@ -47,7 +47,7 @@ begin
         save_interim_results = true,
     )
 
-    save_to_hdf5_ride_format(
+    #=save_to_hdf5_ride_format(
         "./dev/data/simulated_data.h5",
         data,
         evts,
@@ -55,7 +55,7 @@ begin
         'S',
         'R',
         cfg.sfreq,
-    )
+    )=#
 
     #remove the C events from the evts table, these will be estimated by the ride algorithm
     evts_without_c = @subset(evts, :event .!= 'C')
@@ -120,7 +120,7 @@ begin
     Legend(f[1, 2], [s, r, c], ["S", "R", "C"])
     Label(f[0, :], text = "Expected Results")
     display(f)
-    save("actual_erps.png", f)
+    #save("actual_erps.png", f)
 end
 
 if true == false

@@ -44,8 +44,8 @@ function ride_algorithm(
     m = fit(
         UnfoldModel,
         [
-            'S' => (@formula(0 ~ 1), firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
-            'R' => (@formula(0 ~ 1), firbasis(cfg.r_range, cfg.sfreq, "")),
+            'S' => (cgf.formulas[1], firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
+            'R' => (cgf.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
         ],
         evts,
         data,

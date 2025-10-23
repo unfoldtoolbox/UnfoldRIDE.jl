@@ -27,6 +27,7 @@ begin
         r_range = [0, 0.4],
         c_range = [-0.4, 0.4],
         #the range in which the initial peak estimation for the C component is performed
+        formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component; if not specified these will default to `@formula(0~1)`
         c_estimation_range = [0, 0.9],
         #the range for one epoch
         epoch_range = [-0.1, 1]

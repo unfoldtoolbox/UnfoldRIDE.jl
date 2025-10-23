@@ -26,10 +26,10 @@ function unfold_decomposition(data, evts_with_c, cfg)
     m = fit(
         UnfoldModel,
         [
-            'S' => (cgf.formulas[1], firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
-            'R' => (cgf.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
+            'S' => (cfg.formulas[1], firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
+            'R' => (cfg.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
             'C' => (
-                cgf.formulas[3],
+                cfg.formulas[3],
                 firbasis(c_range_adjusted(cfg.c_range), cfg.sfreq, ""),
             ),
         ],

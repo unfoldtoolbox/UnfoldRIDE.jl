@@ -386,7 +386,7 @@ function create_results(
     #add the epoch range to the c_latencies as the output should be latency 
     #from stimulus onset, not from epoch onset
     c_latencies_from_stimulus_onset =
-        c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)
+        round(c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)) # Rounding cause latency has to be in samples
 
     result = RideResults(
         raw_erp = raw_erp,

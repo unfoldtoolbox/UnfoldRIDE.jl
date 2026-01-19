@@ -62,5 +62,5 @@ function unfold_decomposition(data, evts_with_c, cfg)
     y = data
     residuals_without_SR = Unfold._residuals(UnfoldModel, yhat, y)
 
-    return s_erp, r_erp, c_erp, residuals_without_SR
+    return s_erp, r_erp, c_erp, residuals_without_SR, m
 end

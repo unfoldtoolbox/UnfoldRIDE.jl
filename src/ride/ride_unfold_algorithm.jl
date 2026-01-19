@@ -140,7 +140,7 @@ function ride_algorithm(
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
-        s_erp, r_erp, c_erp, residue = unfold_decomposition(data, evts_with_c, cfg)
+        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg)
         ##
 
         ## update C latencies and apply heuristics
@@ -221,6 +221,6 @@ function ride_algorithm(
         r.interim_results = interim_results[i]
         push!(results, r)
     end
-
-    return results
+    
+    return results, m # Return both the full results and the final model
 end

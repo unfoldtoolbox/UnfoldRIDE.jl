@@ -222,5 +222,5 @@ function ride_algorithm(
         push!(results, r)
     end
     
-    return results, m # Return both the full results and the final model
+    return results, model # Return both the full results and the final model
 end

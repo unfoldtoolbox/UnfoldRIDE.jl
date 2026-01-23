@@ -137,6 +137,7 @@ function ride_algorithm(
 
 
     ## iteration start
+    model = nothing # init the model because we want the final model later and Julia only has local scope for loops
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
@@ -222,5 +223,5 @@ function ride_algorithm(
         push!(results, r)
     end
     
-    return results # Return both the full results and the final model
+    return results, model # Return both the full results and the final model
 end

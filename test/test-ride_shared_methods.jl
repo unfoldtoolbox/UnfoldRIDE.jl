@@ -113,9 +113,16 @@ include("../src/ride/ride_shared_methods.jl")
         for i = 1:10000
             data = vcat(zeros(100), hanning(100), hanning(100) .* -1)
 
-            noise = PinkNoise(; noiselevel = 0.1)
+            noisetype = PinkNoise(; noiselevel = 0.1)
             data_noisy = copy(data)
-            UnfoldSim.add_noise!(MersenneTwister(i), noise, data_noisy)
+
+            # Add noise to data; this is a copy/paste from UnfoldSim.add_noise! for now because of a minor bug
+            noise = simulate_noise(MersenneTwister(i), noisetype, prod(size(data_noisy)))
+
+            noise = reshape(noise, size(data_noisy))
+
+            # add noise to data
+            data_noisy .+= noise
 
             data_filtered = dspfilter(data_noisy, 5, 100)
 

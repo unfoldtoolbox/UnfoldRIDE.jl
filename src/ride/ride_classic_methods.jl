@@ -3,9 +3,7 @@ function subtract_to_data(data, others_evts_erp_tuples, sfreq)
     for (evts, erp, range) in others_evts_erp_tuples
         for i in evts.latency
             sub_range =
-                i+round(Int, range[1] * sfreq):i+round(Int, (range[1] * sfreq))+size(
-                    erp[1, :, 1],
-                )[1]-1
+                round(Int, i+ range[1] * sfreq):round(Int, i+(range[1] * sfreq)+size(erp[1, :, 1],)[1]-1)
             if sub_range[end] > length(data_subtracted)
                 continue
             end

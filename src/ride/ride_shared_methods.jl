@@ -21,8 +21,7 @@ function findxcorrpeak(
     kernel::Vector{Float64};
     window::Bool = false,
 )
-    #the purpose of this method is to find the peak of the cross correlation between the kernel and the data
-    #kernel = C component erp. Hanning is applied to factor the center of the C erp more than the edges.
+    # Apply optional Hanning window to favor central values of kernel
     weightedkernel = window ? kernel .* hanning(length(kernel)) : kernel
     xc::Vector{Vector{Float64}} =
         xcorr.(eachcol(data), Ref(weightedkernel); padmode = :none)
@@ -37,7 +36,7 @@ end
 Multi channel version of initial_peak_estimation.
 
 # Arguments
-- `data_continous::Matrix{Float64}`: Input data ins shape (channels, samples).
+- `data_continous::Matrix{Float64}`: Input data in shape (channels, samples).
 - `evts::DataFrame`: Event table. S events are extracted from this table.
 - `cfg::RideConfig`: Configuration for the RIDE algorithm.
 
@@ -63,7 +62,7 @@ Estimates the C latencies of every epoch using peak picking in the given cfg.c_e
 The resulting latencies are from the start of the epoch to the beginning of the c_range.
 
 # Arguments
-- `data_continous::Array{Float64}`: Continous data on which the peak picking is performed.
+- `data_continous::Array{Float64}`: Continuous data on which the peak picking is performed.
 - `evts::DataFrame`: Event table. S events are extracted from this table.
 - `cfg::RideConfig`: Configuration for the RIDE algorithm.
 
@@ -84,15 +83,27 @@ function initial_peak_estimation(
     )
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
-    #Peak estimation for initial c latencies for every epoch
+
+    # Peak estimation for initial C latencies for every epoch
     for a in (1:size(data_residuals_epoched, 3))
         range_start =
             round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
         range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+
+        # Validate range is valid and within bounds
+        range_start = max(1, range_start)
+        range_end = min(size(data_residuals_epoched, 2), range_end)
+
+        if range_start >= range_end
+            @warn "Invalid c_estimation_range for epoch $a: range_start=$range_start >= range_end=$range_end"
+            c_latencies[a] = range_start
+            continue
+        end
+
         range = range_start:range_end
-        #find maximum in the given c_estimation range
+        # Find maximum absolute value in the given c_estimation range
         maximum = findmax(abs.(data_residuals_epoched[1, range, a]))[2]
-        #format the latency to be from epoch start to the start of the c_range window
+        # Format latency to be from epoch start to the start of the c_range window
         c_latencies[a] = maximum + range[1] - 1 + round(Int, cfg.c_range[1] * cfg.sfreq)
     end
     latencies_df = DataFrame(latency = c_latencies, fixed = false)
@@ -124,13 +135,13 @@ This version is used for multi channel data. It calculates the mean of all chann
 - `evts_c::DataFrame` : New event table containing only the C events.
 """
 function build_c_evts_table(latencies_df_vector::Vector, evts::DataFrame, cfg::RideConfig)
-    #calculate the mean of the latencies over all channels
+    # Calculate mean latencies across all channels
     latencies_mean = deepcopy(latencies_df_vector[1])
     for i in range(2, size(latencies_df_vector, 1))
         latencies_mean.latency .+= latencies_df_vector[i].latency
     end
     latencies_mean.latency ./= size(latencies_df_vector, 1)
-    #use the usual build_c_evts_table function with the mean latencies
+    # Use the standard build_c_evts_table function with mean latencies
     return build_c_evts_table(latencies_mean, evts, cfg)
 end
 
@@ -163,8 +174,8 @@ end
 """
     heuristic1_monoton_latency_changes!(latencies_df::DataFrame, latencies_df_old::DataFrame, latencies_df_old_old::DataFrame)
 
-Assure tha the changes in the latencies are monoton, i.e. they always change in one direction.
-If a non monoton change is detected, revert the change and set the latency as fixed in the DataFrame.
+Assure that the changes in the latencies are monotonic, i.e. they always change in one direction.
+If a non monotonic change is detected, revert the change and set the latency as fixed in the DataFrame.
 
 # Arguments
 - `latencies_df::DataFrame`: The current latencies DataFrame.
@@ -265,7 +276,7 @@ function heuristic3_pick_closest_xcorr_peak!(
     @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
     @assert size(latencies_df_old, 1) == size(latencies_df, 1) "latencies_df and latencies_df_old must have the same size"
     @assert equality_threshold > 0 && equality_threshold <= 1 "equality_threshold must be between 0 and 1"
-    for (i, row) in enumerate(eachrow(latencies_df_old))
+    for (i, row) in enumerate(eachrow(latencies_df))
         # skip fixed entries
         if row.fixed
             continue
@@ -284,8 +295,8 @@ function heuristic3_pick_closest_xcorr_peak!(
         if isempty(competing_peaks)
             continue
         end
-        closest_peak = argmin(abs.(competing_peaks .- row.latency))
-        latencies_df.latency[i] = competing_peaks[closest_peak]
+        closest_peak = argmin(abs.(competing_peaks .- latencies_df_old.latency[i]))
+        row.latency = competing_peaks[closest_peak]
     end
 end
 
@@ -293,7 +304,7 @@ end
 """
     dspfilter(signal_to_filter::Vector{Float64}, filter_at::Int64, sampling_rate::Int64)
 
-Filter the given signal with a lowpass filter at the given sampling rate.
+Filter the given signal with a lowpass filter at the given frequency and sampling rate.
 """
 function dspfilter(
     signal_to_filter::Vector{Float64},
@@ -301,20 +312,19 @@ function dspfilter(
     sampling_rate::Int64,
 )
     @assert filter_at * 2 < sampling_rate "Filter frequency must be less than half the sampling rate"
-    a = signal_to_filter
     p = round(
         3.3 / (
             min(max(filter_at * 0.25, 2.0), sampling_rate / 2 - filter_at) / sampling_rate
         ),
     )
     order = Int(p)
-    order = Int(order ÷ 2 * 2) # we need even filter order
+    order = Int(order ÷ 2 * 2) # ensure even filter order
 
     f = DSP.Filters.digitalfilter(
         Lowpass(filter_at / (sampling_rate / 2)),
         FIRWindow(DSP.hanning(order)),
     )
-    b::Vector{Float64} = filtfilt(f, a)
+    b::Vector{Float64} = filtfilt(f, signal_to_filter)
 
     return b
 end
@@ -407,7 +417,7 @@ end
 Pad the given erp to the epoch size using the given latency.
 
 # Returns
-- `padded_erp::Vector{Float64}` : A new padded erp.
+- `padded_erp::Vector{Float64}` : A new padded erp with length exactly equal to epoch_length.
 """
 function pad_erp_to_epoch_size(
     erp::Vector{Float64},
@@ -415,10 +425,90 @@ function pad_erp_to_epoch_size(
     cfg::RideConfig,
 )
     epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
-    padding_front_length = round(Int, latency_from_epoch_start)
-    padding_front = zeros(Float64, max(padding_front_length, 0))
-    padding_back_length = epoch_length - size(padding_front, 1) - size(erp, 1)
-    padding_back = zeros(Float64, max(padding_back_length, 0))
-    padded_erp::Vector{Float64} = vcat(padding_front, erp, padding_back)
+    padding_front_length = max(round(Int, latency_from_epoch_start), 0)
+    padding_front = zeros(Float64, padding_front_length)
+
+    # Calculate back padding to ensure total length equals epoch_length
+    padding_back_length = max(epoch_length - length(padding_front) - length(erp), 0)
+    padding_back = zeros(Float64, padding_back_length)
+
+    padded_erp = vcat(padding_front, erp, padding_back)
+
+    # Ensure exact length (trim if necessary)
+    if length(padded_erp) > epoch_length
+        padded_erp = padded_erp[1:epoch_length]
+    elseif length(padded_erp) < epoch_length
+        padded_erp = vcat(padded_erp, zeros(Float64, epoch_length - length(padded_erp)))
+    end
+
     return padded_erp
+end
+
+"""
+    extract_erps_from_coeftable(c_table::DataFrame, data_channels::Int64, eventnames::Vector{Char})
+
+Helper to extract ERPs for specified events from an Unfold coefficient table.
+
+# Arguments
+- `c_table::DataFrame`: Coefficient table from `coeftable(model)`.
+- `data_channels::Int64`: Number of channels in the data.
+- `eventnames::Vector{Char}`: Event names to extract (e.g., `['S', 'R', 'C']`).
+
+# Returns
+- `erps::Dict{Char, Matrix{Float64}}`: Dictionary mapping event name to its ERP matrix (channels, samples).
+"""
+function extract_erps_from_coeftable(
+    c_table::DataFrame,
+    data_channels::Int64,
+    eventnames::Vector{Char},
+)
+    erps = Dict{Char,Matrix{Float64}}()
+
+    for eventname in eventnames
+        erp = Matrix{Float64}(
+            undef,
+            data_channels,
+            size(@subset(c_table, :eventname .== eventname, :channel .== 1), 1),
+        )
+        for i = 1:data_channels
+            erp[i, :] = @subset(c_table, :eventname .== eventname, :channel .== i).estimate
+        end
+        erps[eventname] = erp
+    end
+
+    return erps
+end
+
+
+"""
+    prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideConfig)
+
+Helper to consolidate epoch preparation logic shared by both Classic and Unfold modes.
+Performs epoching, drop missing epochs, and trims events to match number of epochs.
+
+Returns a tuple `(data_epoched, evts_s, evts_r, evts_trimmed, number_epochs)` where
+- `data_epoched` is the epoched data (channels, samples, epochs),
+- `evts_s` and `evts_r` are the S/R event tables trimmed to the number of epochs,
+- `evts_trimmed` is the original `evts` trimmed to match epochs,
+- `number_epochs` is the number of valid epochs.
+"""
+function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideConfig)
+    evts_s = @subset(evts, :event .== 'S')
+    evts_r = @subset(evts, :event .== 'R')
+
+    data_epoched, _times =
+        Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
+    _n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
+    number_epochs = size(data_epoched, 3)
+
+    evts_s = evts_s[1:number_epochs, :]
+    evts_r = evts_r[1:number_epochs, :]
+
+    # trim original evts to match expected number of rows (S+R per epoch)
+    while size(evts, 1) > number_epochs * 2
+        deleteat!(evts, size(evts, 1))
+    end
+    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
+
+    return data_epoched, evts_s, evts_r, evts, number_epochs
 end

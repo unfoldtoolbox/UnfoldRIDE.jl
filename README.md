@@ -13,6 +13,10 @@
 
 A re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.htm) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
 
+> [!WARNING]
+> This package is still in early development and should be seen as a beta version. While the algorithms seem to work in simulations we have seen some concerning results in real data applications.
+> Use at your own risk. 
+
 ## Install
 
 ### Installing Julia
@@ -52,8 +56,10 @@ cfg = RideConfig(
     s_range = [-0.1, 0.3],
     r_range = [0, 0.4],
     c_range = [-0.4, 0.4],
+    # formulas used for S, R, and C component (in this order!); if not specified these will default to `@formula(0~1)`
+    # Note that the interface will be more generalized in the near future
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] 
     #the range in which the initial peak estimation for the C component is performed
-    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component (in this order!); if not specified these will default to `@formula(0~1)`
     c_estimation_range = [0, 0.9],
     #the range for one epoch
     epoch_range = [-0.1, 1]
@@ -62,6 +68,9 @@ cfg = RideConfig(
 resultsClassic = ride_algorithm(ClassicMode, data_noisy, evts_without_c, cfg)
 resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)
 ```
+
+> [!WARNING]
+> In the 0.0.1 version of the package your events have to be coded as 'S' and 'R' chars in your events table.
 
 ## How to Cite
 

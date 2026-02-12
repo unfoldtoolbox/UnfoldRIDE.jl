@@ -28,31 +28,10 @@ function ride_algorithm(
 
     ## data_preparation
     data_reshaped = reshape(data, (1, :))
-    evts_s = @subset(evts, :event .== 'S')
-    evts_r = @subset(evts, :event .== 'R')
-    interim_results = Vector{RideResults}()
-
-    #epoch data with the cfg.epoch_range to see how many epochs we have
-    #cut evts to match the determined number of epochs
-    #the resulting data_epoched is also used for the c latency estimation
-    data_epoched, data_epoched_times = Unfold.epoch(
-        data = data_reshaped,
-        tbl = evts_s,
-        τ = cfg.epoch_range,
-        sfreq = cfg.sfreq,
-    )
-    n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
-    number_epochs = size(data_epoched, 3)
+    data_epoched, evts_s, evts_r, evts, number_epochs =
+        prepare_epoch_info(data_reshaped, evts, cfg)
     raw_erp = mean(data_epoched, dims = 3)[1, :, 1]
-    #@assert size(evts) == (number_epochs * 2) "Size of evts is $(size(evts)) but should be $(number_epochs * 2)"
-    evts_s = evts_s[1:number_epochs, :]
-    evts_r = evts_r[1:number_epochs, :]
-
-    #reduce evts to the number of epochs
-    while size(evts, 1) > number_epochs * 2
-        deleteat!(evts, size(evts, 1))
-    end
-    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
+    interim_results = Vector{RideResults}()
     ##
 
     ## initial C latency estimation
@@ -134,8 +113,8 @@ function ride_algorithm(
             [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
             cfg.sfreq,
         )
-        if cfg.filtering
-            data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, 20)
+        if cfg.filtering # TODO: Check if this is correct; also check for filter artefacts
+            data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, cfg.sfreq)
         end
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(
             data = data_subtracted_s_and_r,

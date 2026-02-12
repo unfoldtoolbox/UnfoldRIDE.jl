@@ -13,58 +13,28 @@ function ride_algorithm(
             cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
     ## data_preparation
-    evts_s = @subset(evts, :event .== 'S')
-    evts_r = @subset(evts, :event .== 'R')
     interim_results = Vector{Vector}()
     for i in axes(data, 1)
         push!(interim_results, Vector{RideResults}())
     end
-    ##
-
-    #epoch data with the cfg.epoch_range to see how many epochs we have
-    #cut evts to match the determined number of epochs
-    #the resulting data_epoched is also used for the c latency estimation
-    data_epoched, data_epoched_times =
-        Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
-    n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
-    number_epochs = size(data_epoched, 3)
+    data_epoched, evts_s, evts_r, evts, number_epochs = prepare_epoch_info(data, evts, cfg)
     raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
-    #@assert size(evts) == (number_epochs * 2) "Size of evts is $(size(evts)) but should be $(number_epochs * 2)"
-    evts_s = evts_s[1:number_epochs, :]
-    evts_r = evts_r[1:number_epochs, :]
-
-    #reduce evts to the number of epochs
-    while size(evts, 1) > number_epochs * 2
-        deleteat!(evts, size(evts, 1))
-    end
-    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
     ##
 
     ## initial unfold deconvolution
     m = fit(
         UnfoldModel,
         [
-            'S' => (@formula(0 ~ 1), firbasis(cfg.s_range, cfg.sfreq, "")),
-            'R' => (@formula(0 ~ 1), firbasis(cfg.r_range, cfg.sfreq, "")),
+            'S' => (cfg.formulas[1], firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
+            'R' => (cfg.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
         ],
         evts,
         data,
     )
     c_table = coeftable(m)
-    s_erp = Matrix{Float64}(
-        undef,
-        size(data, 1),
-        size(@subset(c_table, :eventname .== 'S', :channel .== 1), 1),
-    )
-    r_erp = Matrix{Float64}(
-        undef,
-        size(data, 1),
-        size(@subset(c_table, :eventname .== 'R', :channel .== 1), 1),
-    )
-    for i in range(1, size(data, 1))
-        s_erp[i, :] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
-        r_erp[i, :] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
-    end
+    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R'])
+    s_erp = erps['S']
+    r_erp = erps['R']
     ##
 
     ## initial residue calculation (data minus S and R)
@@ -137,17 +107,18 @@ function ride_algorithm(
 
 
     ## iteration start
+    model = nothing # init the model because we want the final model later and Julia only has local scope for loops
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
-        s_erp, r_erp, c_erp, residue = unfold_decomposition(data, evts_with_c, cfg)
+        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg)
         ##
 
         ## update C latencies and apply heuristics
         for n in axes(data, 1)
             ## update C latencies via pattern matching
             if cfg.filtering
-                residue[n, :] = dspfilter(residue[n, :], 5, 20)
+                residue[n, :] = dspfilter(residue[n, :], 5, cfg.sfreq)
             end
             c_latencies_df[n], xcorr, onset = unfold_pattern_matching(
                 c_latencies_df[n],
@@ -222,5 +193,5 @@ function ride_algorithm(
         push!(results, r)
     end
 
-    return results
+    return results, model # Return both the full results and the final model
 end

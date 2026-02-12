@@ -13,6 +13,8 @@ through manual inspection of the data.
 through manual inspection of the data.
 - `c_estimation_range::Vector{Float64}`: The range used for the intial C 
 component latency estimation through peak picking.
+- formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)]: Vector containing formulas for the S, R, and C component (in this order!!!).
+Only used during the UnfoldRIDE algorithm.
 - `epoch_range::Vector{Float64}`: The range of one epoch centered around the stimulus onset.
 - `iteration_limit::Int = 4`: The maximum number of iterations of the RIDE algorithm. This 
 is for the outer decomposition-latency estimation loop.
@@ -39,6 +41,7 @@ cfg = RideConfig(
     r_range = [0, 0.8],
     c_range = [-0.4, 0.4],
     c_estimation_range = [-0.1, 0.9],
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,
     heuristic1 = true,
@@ -54,6 +57,7 @@ cfg = RideConfig(
     r_range::Vector{Float64}
     c_range::Vector{Float64}
     c_estimation_range::Vector{Float64}
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
     epoch_range::Vector{Float64}
     iteration_limit::Int = 4
     heuristic1::Bool = true

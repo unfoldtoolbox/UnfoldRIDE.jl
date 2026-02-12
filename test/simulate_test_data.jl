@@ -30,6 +30,7 @@ end
     components_onset::Vector{AbstractOnset}
 end
 
+
 function UnfoldSim.simulate_onsets(rng, onset::SequenceOnset, simulation::Simulation)
     #calculate stimulus onsets
     stimulus_onsets =
@@ -54,7 +55,8 @@ function UnfoldSim.simulate_onsets(rng, onset::SequenceOnset, simulation::Simula
     end
 
     #cut result to the design size
-    result = result[1:size(simulation.design)]
+    @debug "Type of simulation desing: " typeof(simulation.design)
+    result = result[1:size(rng, simulation.design)]
     return result
 end
 

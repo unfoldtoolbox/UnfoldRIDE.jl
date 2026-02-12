@@ -26,10 +26,10 @@ function unfold_decomposition(data, evts_with_c, cfg)
     m = fit(
         UnfoldModel,
         [
-            'S' => (@formula(0 ~ 1), firbasis(cfg.s_range, cfg.sfreq, "")),
-            'R' => (@formula(0 ~ 1), firbasis(cfg.r_range, cfg.sfreq, "")),
+            'S' => (cfg.formulas[1], firbasis(cfg.s_range, cfg.sfreq, "")), # TODO: Let user supply bfdict
+            'R' => (cfg.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
             'C' => (
-                @formula(0 ~ 1),
+                cfg.formulas[3],
                 firbasis(c_range_adjusted(cfg.c_range), cfg.sfreq, ""),
             ),
         ],
@@ -37,30 +37,14 @@ function unfold_decomposition(data, evts_with_c, cfg)
         data,
     )
     c_table = coeftable(m)
-    s_erp = Matrix{Float64}(
-        undef,
-        size(data, 1),
-        size(@subset(c_table, :eventname .== 'S', :channel .== 1), 1),
-    )
-    r_erp = Matrix{Float64}(
-        undef,
-        size(data, 1),
-        size(@subset(c_table, :eventname .== 'R', :channel .== 1), 1),
-    )
-    c_erp = Matrix{Float64}(
-        undef,
-        size(data, 1),
-        size(@subset(c_table, :eventname .== 'C', :channel .== 1), 1),
-    )
-    for i in range(1, size(data, 1))
-        s_erp[i, :] = @subset(c_table, :eventname .== 'S', :channel .== i).estimate
-        r_erp[i, :] = @subset(c_table, :eventname .== 'R', :channel .== i).estimate
-        c_erp[i, :] = @subset(c_table, :eventname .== 'C', :channel .== i).estimate
-    end
+    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R', 'C'])
+    s_erp = erps['S']
+    r_erp = erps['R']
+    c_erp = erps['C']
 
     yhat = predict(m, exclude_basis = 'C', overlap = true)
     y = data
     residuals_without_SR = Unfold._residuals(UnfoldModel, yhat, y)
 
-    return s_erp, r_erp, c_erp, residuals_without_SR
+    return s_erp, r_erp, c_erp, residuals_without_SR, m
 end

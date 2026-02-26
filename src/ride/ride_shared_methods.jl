@@ -85,22 +85,16 @@ function initial_peak_estimation(
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
 
     # Peak estimation for initial C latencies for every epoch
+    range_start = round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
+    range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+    range = range_start:range_end
+
+    # Validate range is valid and within bounds
+    @assert range_end < size(data_residuals_epoched, 2) "C estimation range exceeds epoch length"
+    @assert range_start >= 1 "C estimation range must start at or after the beginning of the epoch"
+
     for a in (1:size(data_residuals_epoched, 3))
-        range_start =
-            round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
-        range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
 
-        # Validate range is valid and within bounds
-        range_start = max(1, range_start)
-        range_end = min(size(data_residuals_epoched, 2), range_end)
-
-        if range_start >= range_end
-            @warn "Invalid c_estimation_range for epoch $a: range_start=$range_start >= range_end=$range_end"
-            c_latencies[a] = range_start
-            continue
-        end
-
-        range = range_start:range_end
         # Find maximum absolute value in the given c_estimation range
         maximum = findmax(abs.(data_residuals_epoched[1, range, a]))[2]
         # Format latency to be from epoch start to the start of the c_range window

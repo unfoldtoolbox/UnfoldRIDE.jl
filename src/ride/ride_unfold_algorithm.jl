@@ -32,7 +32,7 @@ function ride_algorithm(
         data,
     )
     c_table = coeftable(m)
-    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R'])
+    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R']) # This only really makes sense when we use intercept only models; otherwise only the final model are valid results
     s_erp = erps['S']
     r_erp = erps['R']
     ##

@@ -51,12 +51,10 @@ resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)
 🔗 [Running UnfoldRIDE](11-running_ride.md)
 
 ### 2. Intermediate topics
-📌 Goal: 
-🔗
+TBD
 
 ### 3. Advanced topics
-📌 Goal: 
-🔗
+TBD
 
 
 ## Statement of need

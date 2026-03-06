@@ -5,12 +5,25 @@ function ride_algorithm(
     Modus::Type{UnfoldMode},
     data::Array{Float64,2},
     evts,
-    cfg::RideConfig,
+    cfg::RideConfig;
+    kwargs...,
 )
     @debug "Running RIDE algorithm with cfg: $cfg"
     @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
     @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
             cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
+
+    # Check kwargs
+    fit_keys = (
+        :fit,
+        :contrasts,
+        :eventcolumn,
+        :solver,
+        :show_progress,
+        :eventfields,
+        :show_warnings,
+    )
+    fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
 
     ## data_preparation
     interim_results = Vector{Vector}()
@@ -29,7 +42,8 @@ function ride_algorithm(
             'R' => (cfg.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
         ],
         evts,
-        data,
+        data;
+        fit_kwargs...
     )
     c_table = coeftable(m)
     erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R'])
@@ -111,7 +125,7 @@ function ride_algorithm(
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
-        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg)
+        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
         ##
 
         ## update C latencies and apply heuristics

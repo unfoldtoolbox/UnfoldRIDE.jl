@@ -21,7 +21,7 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     return latencies_df, xc, onset
 end
 
-function unfold_decomposition(data, evts_with_c, cfg)
+function unfold_decomposition(data, evts_with_c, cfg; fit_kwargs)
     #unfold deconvolution; TODO: make the fit more general, i.e. let the user provide the model structure
     m = fit(
         UnfoldModel,
@@ -34,7 +34,8 @@ function unfold_decomposition(data, evts_with_c, cfg)
             ),
         ],
         evts_with_c,
-        data,
+        data;
+        fit_kwargs...
     )
     c_table = coeftable(m)
     erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R', 'C'])

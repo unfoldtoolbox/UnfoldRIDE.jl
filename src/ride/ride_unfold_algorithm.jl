@@ -1,5 +1,5 @@
-ride_algorithm(Modus::Type{UnfoldMode}, data::Array{Float64}, evts, cfg::RideConfig) =
-    ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg)
+ride_algorithm(Modus::Type{UnfoldMode}, data::Array{Float64}, evts, cfg::RideConfig; kwargs...) =
+    ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg; kwargs...)
 
 function ride_algorithm(
     Modus::Type{UnfoldMode},

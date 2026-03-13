@@ -192,6 +192,22 @@ function ride_algorithm(
         end
     end
 
+    # Do a last model fit with the final C latencies to get the final S, R and C ERPs; this one should always be done without the robust solver
+    evts_with_c = sort(vcat(evts, evts_c), [:latency])
+    fit_keys = (
+        :fit,
+        :contrasts,
+        :eventcolumn,
+        :show_progress,
+        :eventfields,
+        :show_warnings,
+    )
+    fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
+    @show "Running final model fit with final C latencies"
+    @show fit_kwargs
+    s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
+
+
     results = Vector{RideResults}()
     for i in axes(data, 1)
         r = create_results(

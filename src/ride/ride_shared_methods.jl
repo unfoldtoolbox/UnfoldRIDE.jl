@@ -495,7 +495,8 @@ Returns a tuple `(data_epoched, evts_s, evts_r, evts_trimmed, number_epochs)` wh
 function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideConfig)
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-
+    evts_temp = deepcopy(evts)
+    
     data_epoched, _times =
         Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
     _n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
@@ -505,10 +506,10 @@ function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideCo
     evts_r = evts_r[1:number_epochs, :]
 
     # trim original evts to match expected number of rows (S+R per epoch)
-    while size(evts, 1) > number_epochs * 2
-        deleteat!(evts, size(evts, 1))
+    while size(evts_temp, 1) > number_epochs * 2
+        deleteat!(evts_temp, size(evts_temp, 1))
     end
-    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
+    @assert size(evts_temp, 1) == number_epochs * 2 "Size of evts is $(size(evts_temp,1)) but should be $(number_epochs*2)"
 
-    return data_epoched, evts_s, evts_r, evts, number_epochs
+    return data_epoched, evts_s, evts_r, evts_temp, number_epochs
 end

@@ -1,7 +1,7 @@
 name = "UnfoldRIDE"
 uuid = "348b5554-d1f6-52bd-94b1-729601d351bf"
 authors = ["Till Prölß", " René Skukies", " Benedikt Ehinger"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"

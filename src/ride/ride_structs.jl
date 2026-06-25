@@ -5,14 +5,14 @@ A struct holding the configuration values of the RIDE algorithm.
 
 # Fields
 - `sfreq::Int`: The sampling frequency of the data.
-- `s_range::Vector{Float64}`: The range of the S component. Usually determined
+- `s_range::Vector{Float64}`: The range around the S event onset of the S component. Usually determined
 through manual inspection of the data.
-- `r_range::Vector{Float64}`: The range of the R component. Usually determined
+- `r_range::Vector{Float64}`: The range around the R event onset of the R component. Usually determined
 through manual inspection of the data.
 - `c_range::Vector{Float64}`: The range of the C component. Usually determined
 through manual inspection of the data.
 - `c_estimation_range::Vector{Float64}`: The range used for the intial C 
-component latency estimation through peak picking.
+component latency estimation through peak picking. The range is relative to the stimulus onset and cannot exceed `epoch_range`.
 - formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)]: Vector containing formulas for the S, R, and C component (in this order!!!).
 Only used during the UnfoldRIDE algorithm.
 - `epoch_range::Vector{Float64}`: The range of one epoch centered around the stimulus onset.
@@ -40,7 +40,7 @@ cfg = RideConfig(
     s_range = [-0.2, 0.4],
     r_range = [0, 0.8],
     c_range = [-0.4, 0.4],
-    c_estimation_range = [-0.1, 0.9],
+    c_estimation_range = [0.1, 0.9],
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,

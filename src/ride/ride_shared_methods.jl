@@ -85,6 +85,7 @@ function initial_peak_estimation(
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
 
     # Peak estimation for initial C latencies for every epoch
+    distance_to_s = cfg.c_range[1] - cfg.s_range[1]
     range_start = round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
     range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
     range = range_start:range_end
@@ -92,6 +93,7 @@ function initial_peak_estimation(
     # Validate range is valid and within bounds
     @assert range_end < size(data_residuals_epoched, 2) "C estimation range exceeds epoch length"
     @assert range_start >= 1 "C estimation range must start at or after the beginning of the epoch"
+    @assert !signbit(distance_to_s) "C range must be after S range"
 
     for a in (1:size(data_residuals_epoched, 3))
 
@@ -155,12 +157,10 @@ function build_c_evts_table(latencies_df::DataFrame, evts::DataFrame, cfg::RideC
     evts_s = @subset(evts, :event .== 'S')
     @assert size(latencies_df, 1) == size(evts_s, 1) "latencies_df and evts_s must have the same size"
     evts_c = copy(evts_s)
-    evts_c[!, :latency] .=
-        round.(
-            Int,
-            evts_s[!, :latency] + latencies_df[!, :latency] .+
-            (cfg.epoch_range[1] * cfg.sfreq),
-        )
+    evts_c[!, :latency] .= round.(
+        Int,
+        evts_s[!, :latency] + latencies_df[!, :latency] .+ (cfg.epoch_range[1] * cfg.sfreq),
+    )
     evts_c[!, :event] .= 'C'
     return evts_c
 end

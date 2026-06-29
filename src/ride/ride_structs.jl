@@ -14,7 +14,8 @@ A struct describing a component in the RIDE model.
     label::Char
     formula::FormulaTerm
     range::Vector{Float64}
-    raw_event_codes::Union{Vector{String},Nothing}
+    raw_event_codes::Union{Vector{String},Nothing} = nothing
+    estimation_range::Union{Vector{Float64},Nothing} = nothing
 end
 
 
@@ -58,11 +59,11 @@ each iteration of the RIDE algorithm.
 ```julia-repl
 cfg = RideConfig(
     sfreq = 100,
-    s_range = [-0.2, 0.4],
-    r_range = [0, 0.8],
-    c_range = [-0.4, 0.4],
-    c_estimation_range = [-0.1, 0.9],
-    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
+    s_range = [-0.2, 0.4], # obsolete
+    r_range = [0, 0.8], # obsolete
+    c_range = [-0.4, 0.4], # obsolete
+    c_estimation_range = [-0.1, 0.9], # obsolete
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # # obsolete
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,
     heuristic1 = true,
@@ -74,11 +75,11 @@ cfg = RideConfig(
 """
 @with_kw struct RideConfig
     sfreq::Int
-    s_range::Vector{Float64}
-    r_range::Vector{Float64}
-    c_range::Vector{Float64}
-    c_estimation_range::Vector{Float64}
-    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
+    s_range::Vector{Float64} # obsolete
+    r_range::Vector{Float64}# obsolete
+    c_range::Vector{Float64}# obsolete
+    c_estimation_range::Vector{Float64}# obsolete
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # obsolete
     components = [
         ComponentSpec(
             label = 'S',

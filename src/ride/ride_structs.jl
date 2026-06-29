@@ -1,4 +1,25 @@
 """
+    @with_kw struct ComponentSpec
+
+A struct describing a component in the RIDE model.
+
+# Fields
+- `label::Char`: Internal component label used by the RIDE algorithm (for example, `'S'`, `'R'`, `'C'`).
+- `formula::FormulaTerm`: The regression formula used for this component.
+- `range::Vector{Float64}`: The time range used for the component basis. Variable components 
+- `raw_event_codes::Vector{String}`: The raw event codes that map to this component.
+- `variable_latency::Bool`: Whether this component should use variable latency estimation.
+"""
+@with_kw struct ComponentSpec
+    label::Char
+    formula::FormulaTerm
+    range::Vector{Float64}
+    raw_event_codes::Union{Vector{String},Nothing}
+end
+
+
+
+"""
     @with_kw struct RideConfig
 
 A struct holding the configuration values of the RIDE algorithm.
@@ -58,11 +79,31 @@ cfg = RideConfig(
     c_range::Vector{Float64}
     c_estimation_range::Vector{Float64}
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
+    components = [
+        ComponentSpec(
+            label = 'S',
+            formula = @formula(0 ~ 1),
+            range = [-0.2, 0.4],
+            raw_event_codes = ["stimulus"],
+        ),
+        ComponentSpec(
+            label = 'R',
+            formula = @formula(0 ~ 1),
+            range = [0, 0.8],
+            raw_event_codes = ["response"],
+        ),
+        ComponentSpec(
+            label = 'C',
+            formula = @formula(0 ~ 1),
+            range = [-0.4, 0.4],
+            raw_event_codes = nothing,
+        ),
+    ]
     epoch_range::Vector{Float64}
     iteration_limit::Int = 4
     heuristic1::Bool = true
     heuristic2::Bool = true
-    heuristic2_rng = MersenneTwister(1234)
+    heuristic2_rng = MersenneTwister(42)
     heuristic3::Bool = true
     heuristic3_threshhold::Float64 = 0.9
     filtering::Bool = true

@@ -507,3 +507,28 @@ function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideCo
 
     return data_epoched, evts_s, evts_r, evts_temp, number_epochs
 end
+
+"""
+    tukey_window(data, window::Tuple)
+
+Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window on S component locked data before cross correlation to ensure the C component is only estimated in a specific range.
+
+# Arguments
+- data: Epoched data
+- window: The estimation window (in relation to S). In seconds.
+
+# Returns
+- Epochs with applied tukey window
+"""
+function tukey_window(data, τ_epoch::Tuple, τ_comp::Tuple, cfg)
+    # Calculate the number of samples for the tukey window based on the component range and sampling frequency
+    n = length(range(τ_comp[1], step=1/cfg.sfreq, stop=τ_comp[2]))
+    t = tukey(n, 0.5)
+    
+    # Pad the tukey window to match the epoch size
+    latency_from_epoch_start = length(range(τ_epoch[1], step=1/sfreq, stop=τ_comp[1]))
+    t = pad_erp_to_epoch_size(t, latency_from_epoch_start, cfg)
+
+    data = data .* t
+    return data
+end

@@ -124,6 +124,9 @@ function ride_algorithm(
         )
         n, data_epoched_subtracted_s_and_r =
             Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
+
+        # TODO: implement tukey window here
+
         xcorr, m, onset =
             findxcorrpeak(data_epoched_subtracted_s_and_r[1, :, :], c_erp[1, :, 1])
         c_latencies = reshape(m, (1, :))

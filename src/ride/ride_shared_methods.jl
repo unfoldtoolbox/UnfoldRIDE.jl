@@ -85,7 +85,7 @@ function initial_peak_estimation(
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
 
     # Peak estimation for initial C latencies for every epoch
-    distance_to_s = cfg.c_range[1] - cfg.s_range[1]
+    #distance_to_s = cfg.tukey_window[1] - cfg.s_range[1]
     range_start = round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
     range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
     range = range_start:range_end
@@ -93,7 +93,7 @@ function initial_peak_estimation(
     # Validate range is valid and within bounds
     @assert range_end < size(data_residuals_epoched, 2) "C estimation range exceeds epoch length"
     @assert range_start >= 1 "C estimation range must start at or after the beginning of the epoch"
-    @assert !signbit(distance_to_s) "C range must be after S range"
+    @assert cfg.tukey_window[1] > cfg.s_range[1] "C estimation window (i.e. tukey_window = $cfg.tukey_window) must be after anchor component (typically S) range" #!signbit(distance_to_s)
 
     for a in (1:size(data_residuals_epoched, 3))
 
@@ -520,15 +520,18 @@ Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window o
 # Returns
 - Epochs with applied tukey window
 """
-function tukey_window(data, τ_epoch::Tuple, τ_comp::Tuple, cfg)
+function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
     # Calculate the number of samples for the tukey window based on the component range and sampling frequency
-    n = length(range(τ_comp[1], step=1/cfg.sfreq, stop=τ_comp[2]))
+    n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
     t = tukey(n, 0.5)
-    
+
+    # Make sure tukey is shorter than the epoch length
+
     # Pad the tukey window to match the epoch size
-    latency_from_epoch_start = length(range(τ_epoch[1], step=1/sfreq, stop=τ_comp[1]))
+    latency_from_epoch_start =
+        length(range(τ_epoch[1], step = 1/cfg.sfreq, stop = τ_comp[1]))
     t = pad_erp_to_epoch_size(t, latency_from_epoch_start, cfg)
 
-    data = data .* t
-    return data
+    d = data .* t
+    return d
 end

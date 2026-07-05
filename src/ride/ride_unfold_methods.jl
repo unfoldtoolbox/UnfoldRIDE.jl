@@ -10,6 +10,14 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
     #TODO: Implement tukey window here
+    for e in axes(data_residuals_epoched, 3)
+        data_residuals_epoched[:, :, e] = tukey_window(
+            data_residuals_epoched[:, :, e],
+            cfg.epoch_range,
+            cfg.tukey_window,
+            cfg,
+        )
+    end
 
     xc, result, onset = findxcorrpeak(data_residuals_epoched[1, :, :], c_erp)
 

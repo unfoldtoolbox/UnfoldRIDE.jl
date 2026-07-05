@@ -126,6 +126,15 @@ function ride_algorithm(
             Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
 
         # TODO: implement tukey window here
+        for e in axes(data_epoched_subtracted_s_and_r, 3)
+            #TODO: Fix the error of dimension mismatch here
+            data_epoched_subtracted_s_and_r[:, :, e] = tukey_window(
+                data_epoched_subtracted_s_and_r[:, :, e],
+                cfg.epoch_range,
+                cfg.tukey_window,
+                cfg,
+            )
+        end
 
         xcorr, m, onset =
             findxcorrpeak(data_epoched_subtracted_s_and_r[1, :, :], c_erp[1, :, 1])

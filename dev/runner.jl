@@ -2,10 +2,10 @@ using Pkg
 Pkg.activate("./dev")
 
 using Revise
-includet("../src/UnfoldRIDE.jl")
+#includet("../src/UnfoldRIDE.jl")
 includet("../test/simulate_test_data.jl")
 includet("./plotting_methods.jl")
-using .UnfoldRIDE
+using UnfoldRIDE
 using CairoMakie
 using StableRNGs
 using BenchmarkTools
@@ -25,8 +25,8 @@ begin
     #sim_inputs.s_offset = 70
     data, evts, data_clean, evts_clean, data_clean_s, data_clean_r, data_clean_c =
         simulate_default_plus_clean(sim_inputs)
-    plot_first_three_epochs_of_raw_data(data_clean_s, evts)
-    plot_first_three_epochs_of_raw_data(data, evts)
+#    plot_first_three_epochs_of_raw_data(data_clean_s, evts)
+#    plot_first_three_epochs_of_raw_data(data, evts)
 end
 
 #run the ride algorithm on the simulated data
@@ -38,7 +38,8 @@ begin
         s_range = [-0.2, 0.4],
         r_range = [0, 0.8],
         c_range = [-0.4, 0.4],
-        c_estimation_range = [-0.1, 0.9],
+        c_estimation_range = [0.2, 0.9],
+        tukey_window = (0.2, 0.6),
         epoch_range = [-0.3, 1.6],
         iteration_limit = 5,
         heuristic1 = true,
@@ -68,7 +69,7 @@ begin
     c_erp = results[1].c_erp
     c_latencies = results[1].c_latencies
 
-    plot_interim_results(data, evts, results[1], cfg)
+    #plot_interim_results(data, evts, results[1], cfg)
 end
 
 # calculate and plot clean erps from the simulated data

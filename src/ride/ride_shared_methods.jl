@@ -418,7 +418,9 @@ function pad_erp_to_epoch_size(
     latency_from_epoch_start::Int64,
     cfg::RideConfig,
 )
-    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq) + 1
+    @debug "Epoch length: $epoch_length, ERP length: $(length(erp)), Latency from epoch start: $latency_from_epoch_start"
+
     padding_front_length = max(round(Int, latency_from_epoch_start), 0)
     padding_front = zeros(Float64, padding_front_length)
 
@@ -525,6 +527,7 @@ function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
     n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
     t = tukey(n, 0.5)
 
+    @debug "Data size: $(size(data)), Tukey window size: $(length(t)), Epoch range: $τ_epoch, Component range: $τ_comp"
     # Make sure tukey is shorter than the epoch length
 
     # Pad the tukey window to match the epoch size
@@ -532,6 +535,8 @@ function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
         length(range(τ_epoch[1], step = 1/cfg.sfreq, stop = τ_comp[1]))
     t = pad_erp_to_epoch_size(t, latency_from_epoch_start, cfg)
 
+    @debug "Tukey window size after padding: $(size(t)), Data size: $(size(data))"
+    t = reshape(t, 1, length(t), 1)  # Reshape to (1, samples, 1) for broadcasting
     d = data .* t
     return d
 end

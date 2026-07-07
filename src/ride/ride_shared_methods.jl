@@ -525,7 +525,7 @@ Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window o
 function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
     # Calculate the number of samples for the tukey window based on the component range and sampling frequency
     n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
-    t = tukey(n, 0.5)
+    t = tukey(n, cfg.tukey_α) 
 
     @debug "Data size: $(size(data)), Tukey window size: $(length(t)), Epoch range: $τ_epoch, Component range: $τ_comp"
     # Make sure tukey is shorter than the epoch length

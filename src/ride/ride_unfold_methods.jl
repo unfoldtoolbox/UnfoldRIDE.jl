@@ -10,7 +10,18 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
     #TODO: Implement tukey window here
-    for e in axes(data_residuals_epoched, 3)
+    for e in axes(data_residuals_epoched[:, :, :], 3)
+        #TODO: Fix the error of dimension mismatch here
+        @debug "Size of epoch $e: " size(data_residuals_epoched[:, :, e])
+
+        @debug "Size of after tukey window: " size(
+            tukey_window(
+                data_residuals_epoched[:, :, e],
+                cfg.epoch_range,
+                cfg.tukey_window,
+                cfg,
+            ),
+        )
         data_residuals_epoched[:, :, e] = tukey_window(
             data_residuals_epoched[:, :, e],
             cfg.epoch_range,

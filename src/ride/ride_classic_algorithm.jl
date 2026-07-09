@@ -122,12 +122,26 @@ function ride_algorithm(
             τ = cfg.epoch_range,
             sfreq = cfg.sfreq,
         )
+
+        @debug "Size before dropping missing epochs: " size(data_epoched_subtracted_s_and_r)
+
         n, data_epoched_subtracted_s_and_r =
             Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
 
-        # TODO: implement tukey window here
-        for e in axes(data_epoched_subtracted_s_and_r, 3)
+        @debug "Size after dropping missing epochs: " size(data_epoched_subtracted_s_and_r)
+
+        for e in axes(data_epoched_subtracted_s_and_r[:, :, :], 3)
             #TODO: Fix the error of dimension mismatch here
+            @debug "Size of epoch $e: " size(data_epoched_subtracted_s_and_r[:, :, e])
+
+            @debug "Size of after tukey window: " size(
+                tukey_window(
+                    data_epoched_subtracted_s_and_r[:, :, e],
+                    cfg.epoch_range,
+                    cfg.tukey_window,
+                    cfg,
+                ),
+            )
             data_epoched_subtracted_s_and_r[:, :, e] = tukey_window(
                 data_epoched_subtracted_s_and_r[:, :, e],
                 cfg.epoch_range,

@@ -27,8 +27,7 @@ and fixes a latency on encountering a convex xcorrelation result.
 competing peaks in the xcorrelation results. The peak closest to the previous latency is chosen.
 - `heuristic3_threshhold::Float64 = 0.9`: The threshold used for heuristic 3. If the peak is
 below this threshold * the maximum peak, it is considered a competing peak.
-- `filtering::Bool = true`: A flag to enable/disable filtering of the data before performing the 
-cross correlation.
+- `filtering::Tuple{Bool, Bool} = (true, true)`: A flag to enable/disable filtering of the data at 3Hz before performing the cross correlation (`filtering[1]`) and at 20Hz before decomposition iteration (`filtering[2]`). Both are set to true by default, since these are the original RIDE defaults.
 - `save_interim_results::Bool = false`: A flag to enable/disable saving the interim results of
 each iteration of the RIDE algorithm.
 
@@ -67,7 +66,7 @@ cfg = RideConfig(
     heuristic2_rng = MersenneTwister(1234)
     heuristic3::Bool = true
     heuristic3_threshhold::Float64 = 0.9
-    filtering::Bool = true
+    filtering::Tuple{Bool,Bool} = (true, true)
     save_interim_results::Bool = false
 end
 

@@ -32,7 +32,7 @@ using LinearAlgebra
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        r, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
+        r, _, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
         results = r[1]
         @test supertype(typeof(model)) == UnfoldModel{Float64}
     end

@@ -2,15 +2,24 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     #epoch residue
     evts_s = @subset(evts, :event .== 'S')
     data_residuals_epoched, times = Unfold.epoch(
-        data = data_residuals_continous,
-        tbl = evts_s,
-        τ = cfg.epoch_range,
-        sfreq = cfg.sfreq,
+        data=data_residuals_continous,
+        tbl=evts_s,
+        τ=cfg.epoch_range,
+        sfreq=cfg.sfreq,
     )
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
-    #TODO: Implement tukey window here
-    for e in axes(data_residuals_epoched, 3)
+
+    for e in axes(data_residuals_epoched[:, :, :], 3)
+
+        @debug "Size of epoch $e: " size(data_residuals_epoched[:, :, e])
+
+        @debug "Size of after tukey window: " size(tukey_window(
+            data_residuals_epoched[:, :, e],
+            cfg.epoch_range,
+            cfg.tukey_window,
+            cfg,
+        ))
         data_residuals_epoched[:, :, e] = tukey_window(
             data_residuals_epoched[:, :, e],
             cfg.epoch_range,
@@ -18,6 +27,7 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
             cfg,
         )
     end
+    e4b5b7fa0b55a0ea7e4bdf7bf55840f97d2db41f
 
     xc, result, onset = findxcorrpeak(data_residuals_epoched[1, :, :], c_erp)
 
@@ -52,7 +62,7 @@ function unfold_decomposition(data, evts_with_c, cfg)
     r_erp = erps['R']
     c_erp = erps['C']
 
-    yhat = predict(m, exclude_basis = 'C', overlap = true)
+    yhat = predict(m, exclude_basis=('C'), overlap=true)
     y = data
     residuals_without_SR = Unfold._residuals(UnfoldModel, yhat, y)
 

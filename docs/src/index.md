@@ -4,7 +4,7 @@ CurrentModule = UnfoldRIDE
 
 # UnfoldRIDE.jl Documentation 
 
-Welcome to the documentation for [UnfoldRIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl), a re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.htm) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
+Welcome to the documentation for [UnfoldRIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl), a re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.html) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
 
 ```@raw html
 <div style="width:60%; margin: auto;">

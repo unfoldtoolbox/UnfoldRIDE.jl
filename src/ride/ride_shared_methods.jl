@@ -19,12 +19,12 @@ Calculate the cross correlation between the data and the kernel for each epoch a
 function findxcorrpeak(
     data::Union{Matrix{Float64},Vector{Float64}},
     kernel::Vector{Float64};
-    window::Bool=false,
+    window::Bool = false,
 )
     # Apply optional Hanning window to favor central values of kernel
     weightedkernel = window ? kernel .* hanning(length(kernel)) : kernel
     xc::Vector{Vector{Float64}} =
-        xcorr.(eachcol(data), Ref(weightedkernel); padmode=:none)
+        xcorr.(eachcol(data), Ref(weightedkernel); padmode = :none)
     onset::Int = length(kernel)
     maxima::Vector{Int} = [findmax(x)[2] for x in xc] .- onset
     return xc, maxima, onset
@@ -76,10 +76,10 @@ function initial_peak_estimation(
 )
     evts_s = @subset(evts, :event .== 'S')
     data_residuals_epoched, times = Unfold.epoch(
-        data=data_continous,
-        tbl=evts_s,
-        τ=cfg.epoch_range,
-        sfreq=cfg.sfreq,
+        data = data_continous,
+        tbl = evts_s,
+        τ = cfg.epoch_range,
+        sfreq = cfg.sfreq,
     )
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
@@ -102,7 +102,7 @@ function initial_peak_estimation(
         # Format latency to be from epoch start to the start of the c_range window
         c_latencies[a] = maximum + range[1] - 1 + round(Int, cfg.c_range[1] * cfg.sfreq)
     end
-    latencies_df = DataFrame(latency=c_latencies, fixed=false)
+    latencies_df = DataFrame(latency = c_latencies, fixed = false)
     return latencies_df
 end
 
@@ -217,7 +217,7 @@ function heuristic2_randomize_latency_on_convex_xcorr!(
     latencies_df::DataFrame,
     latencies_df_old::DataFrame,
     xcorr::Vector{Vector{Float64}},
-    rng::AbstractRNG=MersenneTwister(1234),
+    rng::AbstractRNG = MersenneTwister(1234),
 )
     @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
     ##you cannot calculate a standard deviation with less than 2 values
@@ -264,8 +264,8 @@ function heuristic3_pick_closest_xcorr_peak!(
     latencies_df::DataFrame,
     latencies_df_old::DataFrame,
     xcorr::Vector{Vector{Float64}};
-    equality_threshold::Float64=0.9,
-    onset::Int64=0,
+    equality_threshold::Float64 = 0.9,
+    onset::Int64 = 0,
 )
     @assert size(latencies_df, 1) == size(xcorr, 1) "latencies_df and xcorr must have the same size"
     @assert size(latencies_df_old, 1) == size(latencies_df, 1) "latencies_df and latencies_df_old must have the same size"
@@ -393,14 +393,14 @@ function create_results(
         round.(c_latencies_df.latency .+ (cfg.epoch_range[1] * cfg.sfreq)) # Rounding cause latency has to be in samples
 
     result = RideResults(
-        raw_erp=raw_erp,
-        s_erp=s_erp_padded,
-        r_erp=r_erp_padded,
-        c_erp=c_erp_padded,
-        s_erp_unpadded=s_erp,
-        r_erp_unpadded=r_erp,
-        c_erp_unpadded=c_erp,
-        c_latencies=c_latencies_from_stimulus_onset,
+        raw_erp = raw_erp,
+        s_erp = s_erp_padded,
+        r_erp = r_erp_padded,
+        c_erp = c_erp_padded,
+        s_erp_unpadded = s_erp,
+        r_erp_unpadded = r_erp,
+        c_erp_unpadded = c_erp,
+        c_latencies = c_latencies_from_stimulus_onset,
     )
     return result
 end
@@ -418,9 +418,7 @@ function pad_erp_to_epoch_size(
     latency_from_epoch_start::Int64,
     cfg::RideConfig,
 )
-    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq) + 1
-    @debug "Epoch length: $epoch_length, ERP length: $(length(erp)), Latency from epoch start: $latency_from_epoch_start"
-
+    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
     padding_front_length = max(round(Int, latency_from_epoch_start), 0)
     padding_front = zeros(Float64, padding_front_length)
 
@@ -491,10 +489,9 @@ Returns a tuple `(data_epoched, evts_s, evts_r, evts_trimmed, number_epochs)` wh
 function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideConfig)
     evts_s = @subset(evts, :event .== 'S')
     evts_r = @subset(evts, :event .== 'R')
-    evts_temp = deepcopy(evts)
 
     data_epoched, _times =
-        Unfold.epoch(data=data, tbl=evts_s, τ=cfg.epoch_range, sfreq=cfg.sfreq)
+        Unfold.epoch(data = data, tbl = evts_s, τ = cfg.epoch_range, sfreq = cfg.sfreq)
     _n, data_epoched = Unfold.drop_missing_epochs(evts_s, data_epoched)
     number_epochs = size(data_epoched, 3)
 
@@ -502,10 +499,38 @@ function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideCo
     evts_r = evts_r[1:number_epochs, :]
 
     # trim original evts to match expected number of rows (S+R per epoch)
-    while size(evts_temp, 1) > number_epochs * 2
-        deleteat!(evts_temp, size(evts_temp, 1))
+    while size(evts, 1) > number_epochs * 2
+        deleteat!(evts, size(evts, 1))
     end
-    @assert size(evts_temp, 1) == number_epochs * 2 "Size of evts is $(size(evts_temp,1)) but should be $(number_epochs*2)"
+    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
 
-    return data_epoched, evts_s, evts_r, evts_temp, number_epochs
+    return data_epoched, evts_s, evts_r, evts, number_epochs
+end
+
+"""
+    tukey_window(data, window::Tuple)
+
+Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window on S component locked data before cross correlation to ensure the C component is only estimated in a specific range.
+
+# Arguments
+- data: Epoched data
+- window: The estimation window (in relation to S). In seconds.
+
+# Returns
+- Epochs with applied tukey window
+"""
+function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
+    # Calculate the number of samples for the tukey window based on the component range and sampling frequency
+    n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
+    t = tukey(n, 0.5)
+
+    # Make sure tukey is shorter than the epoch length
+
+    # Pad the tukey window to match the epoch size
+    latency_from_epoch_start =
+        length(range(τ_epoch[1], step = 1/cfg.sfreq, stop = τ_comp[1]))
+    t = pad_erp_to_epoch_size(t, latency_from_epoch_start, cfg)
+
+    d = data .* t
+    return d
 end

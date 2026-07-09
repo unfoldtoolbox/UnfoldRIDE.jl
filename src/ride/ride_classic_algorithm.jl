@@ -30,7 +30,7 @@ function ride_algorithm(
     data_reshaped = reshape(data, (1, :))
     data_epoched, evts_s, evts_r, evts, number_epochs =
         prepare_epoch_info(data_reshaped, evts, cfg)
-    raw_erp = mean(data_epoched, dims=3)[1, :, 1]
+    raw_erp = mean(data_epoched, dims = 3)[1, :, 1]
     interim_results = Vector{RideResults}()
     ##
 
@@ -43,15 +43,15 @@ function ride_algorithm(
     ## initial erp calculation
     #calculate initial  erp of S
     data_epoched_s, data_epoched_s_times =
-        Unfold.epoch(data=data_reshaped, tbl=evts_s, τ=cfg.s_range, sfreq=cfg.sfreq)
+        Unfold.epoch(data = data_reshaped, tbl = evts_s, τ = cfg.s_range, sfreq = cfg.sfreq)
     n, data_epoched_s = Unfold.drop_missing_epochs(evts_s, data_epoched_s)
-    s_erp = median(data_epoched_s, dims=3)
+    s_erp = median(data_epoched_s, dims = 3)
 
     #calculate initial erp of R
     data_epoched_r, data_epoched_r_times =
-        Unfold.epoch(data=data_reshaped, tbl=evts_r, τ=cfg.r_range, sfreq=cfg.sfreq)
+        Unfold.epoch(data = data_reshaped, tbl = evts_r, τ = cfg.r_range, sfreq = cfg.sfreq)
     n, data_epoched_r = Unfold.drop_missing_epochs(evts_r, data_epoched_r)
-    r_erp = median(data_epoched_r, dims=3)
+    r_erp = median(data_epoched_r, dims = 3)
 
     ## save interim results
     if cfg.save_interim_results
@@ -84,7 +84,7 @@ function ride_algorithm(
                 [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
                 cfg.sfreq,
             )
-            c_erp = median(data_subtracted_s_and_r, dims=3)
+            c_erp = median(data_subtracted_s_and_r, dims = 3)
             #calculate erp of S
             data_subtracted_c_and_r = subtract_to_data_epoched(
                 data_reshaped,
@@ -93,7 +93,7 @@ function ride_algorithm(
                 [(evts_c, c_erp, c_range_adj), (evts_r, r_erp, cfg.r_range)],
                 cfg.sfreq,
             )
-            s_erp = median(data_subtracted_c_and_r, dims=3)
+            s_erp = median(data_subtracted_c_and_r, dims = 3)
             #calculate erp of R
             data_subtracted_s_and_c = subtract_to_data_epoched(
                 data_reshaped,
@@ -102,7 +102,7 @@ function ride_algorithm(
                 [(evts_s, s_erp, cfg.s_range), (evts_c, c_erp, c_range_adj)],
                 cfg.sfreq,
             )
-            r_erp = median(data_subtracted_s_and_c, dims=3)
+            r_erp = median(data_subtracted_s_and_c, dims = 3)
         end
         ##
 
@@ -117,38 +117,23 @@ function ride_algorithm(
             data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, cfg.sfreq)
         end
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(
-            data=data_subtracted_s_and_r,
-            tbl=evts_s,
-            τ=cfg.epoch_range,
-            sfreq=cfg.sfreq,
+            data = data_subtracted_s_and_r,
+            tbl = evts_s,
+            τ = cfg.epoch_range,
+            sfreq = cfg.sfreq,
         )
+        n, data_epoched_subtracted_s_and_r =
+            Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
 
-        @debug "Size before dropping missing epochs: " size(data_epoched_subtracted_s_and_r)
-
-        n, data_epoched_subtracted_s_and_r = Unfold.drop_missing_epochs(evts_s, data_epoched_subtracted_s_and_r)
-
-        @debug "Size after dropping missing epochs: " size(data_epoched_subtracted_s_and_r)
-        #data_epoched_subtracted_s_and_r = reshape(data_epoched_subtracted_s_and_r, (1, :))
-        #@debug "Size after reshape: " size(data_epoched_subtracted_s_and_r)
         # TODO: implement tukey window here
-        for e in axes(data_epoched_subtracted_s_and_r[:, :, :], 3)
+        for e in axes(data_epoched_subtracted_s_and_r, 3)
             #TODO: Fix the error of dimension mismatch here
-            @debug "Size of epoch $e: " size(data_epoched_subtracted_s_and_r[:, :, e])
-
-            @debug "Size of after tukey window: " size(tukey_window(
-                data_epoched_subtracted_s_and_r[:, :, e],
-                cfg.epoch_range,
-                cfg.tukey_window,
-                cfg,
-            ))
-
             data_epoched_subtracted_s_and_r[:, :, e] = tukey_window(
                 data_epoched_subtracted_s_and_r[:, :, e],
                 cfg.epoch_range,
                 cfg.tukey_window,
                 cfg,
             )
-
         end
 
         xcorr, m, onset =
@@ -187,8 +172,8 @@ function ride_algorithm(
                 c_latencies_df,
                 c_latencies_df_prev,
                 xcorr;
-                equality_threshold=cfg.heuristic3_threshhold,
-                onset=onset,
+                equality_threshold = cfg.heuristic3_threshhold,
+                onset = onset,
             )
         end
 
@@ -223,7 +208,7 @@ function ride_algorithm(
         [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
         cfg.sfreq,
     )
-    c_erp = mean(data_subtracted_s_and_r, dims=3)
+    c_erp = mean(data_subtracted_s_and_r, dims = 3)
     #calculate erp of S
     data_subtracted_c_and_r = subtract_to_data_epoched(
         data_reshaped,
@@ -232,7 +217,7 @@ function ride_algorithm(
         [(evts_c, c_erp, c_range_adj), (evts_r, r_erp, cfg.r_range)],
         cfg.sfreq,
     )
-    s_erp = mean(data_subtracted_c_and_r, dims=3)
+    s_erp = mean(data_subtracted_c_and_r, dims = 3)
     #calculate erp of R
     data_subtracted_s_and_c = subtract_to_data_epoched(
         data_reshaped,
@@ -241,7 +226,7 @@ function ride_algorithm(
         [(evts_s, s_erp, cfg.s_range), (evts_c, c_erp, c_range_adj)],
         cfg.sfreq,
     )
-    r_erp = mean(data_subtracted_s_and_c, dims=3)
+    r_erp = mean(data_subtracted_s_and_c, dims = 3)
     ##
 
     results = create_results(
@@ -255,7 +240,5 @@ function ride_algorithm(
     )
     results.interim_results = interim_results
 
-    events_tbl = sort(vcat(evts, evts_c), [:latency]) # return final events table with C latencies added
-
-    return results, events_tbl
+    return [results]
 end

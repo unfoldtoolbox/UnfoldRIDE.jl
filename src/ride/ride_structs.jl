@@ -42,7 +42,6 @@ cfg = RideConfig(
     c_range = [-0.4, 0.4],
     c_estimation_range = [0.1, 0.9],
     tukey_window = (0.2, 0.6),
-    tukey_α = 0.2,
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,
@@ -60,7 +59,6 @@ cfg = RideConfig(
     c_range::Vector{Float64}
     c_estimation_range::Vector{Float64}
     tukey_window::Tuple{Float64,Float64}
-    tukey_α::Float64 = 0.2
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
     epoch_range::Vector{Float64}
     iteration_limit::Int = 4

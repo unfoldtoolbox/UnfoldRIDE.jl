@@ -193,5 +193,6 @@ function ride_algorithm(
         push!(results, r)
     end
 
-    return results, model # Return both the full results and the final model
+    events_tbl = sort(vcat(evts, evts_c), [:latency]) # return final events table with C latencies added
+    return results, events_tbl, model # Return both the full results and the final model
 end

@@ -540,3 +540,24 @@ function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
     d = data .* t
     return d
 end
+
+"""
+    filter_before(data, cfg::RideConfig)
+
+Apply a 20Hz low-pass filter to the data before the iterative decomposition.
+
+# Arguments
+- data: The input data
+- cfg: The RIDE configuration
+
+# Returns
+- The filtered data and the original data
+"""
+function filter_before(data, cfg::RideConfig)
+    if cfg.filtering[2]
+        filtered = dspfilter(vec(data), 20, cfg.sfreq)
+    else
+        filtered = deepcopy(data)
+    end
+    return filtered, data
+end

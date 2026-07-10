@@ -27,6 +27,12 @@ function ride_algorithm(
             cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
     ## data_preparation
+
+    # Apply 20Hz low-pass filter to the data before running the RIDE algorithm, if enabled in the configuration
+    # This is the original RIDE default, but can be disabled by the user if desired. According to Ouyang the filter is a bit arbitrary, but is used to reduce high frequency noise in the data before running the RIDE algorithm. We kept it here for consistency with the original RIDE implementation.
+    # During the last iteration the original data is used.
+    data, raw_data = filter_before(data, cfg)
+
     data_reshaped = reshape(data, (1, :))
     data_epoched, evts_s, evts_r, evts, number_epochs =
         prepare_epoch_info(data_reshaped, evts, cfg)
@@ -113,7 +119,7 @@ function ride_algorithm(
             [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
             cfg.sfreq,
         )
-        if cfg.filtering # TODO: Check if this is correct; also check for filter artefacts
+        if cfg.filtering[1] # TODO: Check if this is correct; also check for filter artefacts
             data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, cfg.sfreq)
         end
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(
@@ -215,6 +221,7 @@ function ride_algorithm(
 
     ##last iteration using the mean instead of median
     #calculate erp of C by subtracting S and R from the data
+    data_reshaped = reshape(raw_data, (1, :)) # Use original unfiltered data for the last iteration
     data_subtracted_s_and_r = subtract_to_data_epoched(
         data_reshaped,
         evts_c,

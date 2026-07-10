@@ -17,6 +17,13 @@ function ride_algorithm(
     for i in axes(data, 1)
         push!(interim_results, Vector{RideResults}())
     end
+
+    # Apply 20Hz low-pass filter to the data before running the RIDE algorithm, if enabled in the configuration
+    # This is the original RIDE default, but can be disabled by the user if desired. According to Ouyang the filter is a bit arbitrary, but is used to reduce high frequency noise in the data before running the RIDE algorithm. We kept it here for consistency with the original RIDE implementation.
+    # During the last iteration the original data is used.
+    data, raw_data = filter_before(data, cfg)
+    data = reshape(data, (1, :))
+
     data_epoched, evts_s, evts_r, evts, number_epochs = prepare_epoch_info(data, evts, cfg)
     raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
     ##
@@ -107,7 +114,6 @@ function ride_algorithm(
 
 
     ## iteration start
-    model = nothing # init the model because we want the final model later and Julia only has local scope for loops
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
@@ -117,7 +123,7 @@ function ride_algorithm(
         ## update C latencies and apply heuristics
         for n in axes(data, 1)
             ## update C latencies via pattern matching
-            if cfg.filtering
+            if cfg.filtering[1]
                 residue[n, :] = dspfilter(residue[n, :], 5, cfg.sfreq)
             end
             c_latencies_df[n], xcorr, onset = unfold_pattern_matching(
@@ -177,6 +183,12 @@ function ride_algorithm(
             )
         end
     end
+
+
+    # Last iteration: decompose data into S, R and C components using the current C latencies and the original data (not filtered)
+    evts_with_c = sort(vcat(evts, evts_c), [:latency])
+    raw_data = reshape(raw_data, (1, :))
+    s_erp, r_erp, c_erp, _, model = unfold_decomposition(raw_data, evts_with_c, cfg)
 
     results = Vector{RideResults}()
     for i in axes(data, 1)

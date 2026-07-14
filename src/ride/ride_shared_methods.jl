@@ -85,22 +85,18 @@ function initial_peak_estimation(
     c_latencies = Vector{Float64}(undef, size(data_residuals_epoched, 3))
 
     # Peak estimation for initial C latencies for every epoch
+    #distance_to_s = cfg.tukey_window[1] - cfg.s_range[1]
+    range_start = round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
+    range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+    range = range_start:range_end
+
+    # Validate range is valid and within bounds
+    @assert range_end < size(data_residuals_epoched, 2) "C estimation range exceeds epoch length"
+    @assert range_start >= 1 "C estimation range must start at or after the beginning of the epoch"
+    @assert cfg.tukey_window[1] > cfg.s_range[1] "C estimation window (i.e. tukey_window = $cfg.tukey_window) must be after anchor component (typically S) range" #!signbit(distance_to_s)
+
     for a in (1:size(data_residuals_epoched, 3))
-        range_start =
-            round(Int, (cfg.c_estimation_range[1] - cfg.epoch_range[1]) * cfg.sfreq)
-        range_end = round(Int, (cfg.c_estimation_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
 
-        # Validate range is valid and within bounds
-        range_start = max(1, range_start)
-        range_end = min(size(data_residuals_epoched, 2), range_end)
-
-        if range_start >= range_end
-            @warn "Invalid c_estimation_range for epoch $a: range_start=$range_start >= range_end=$range_end"
-            c_latencies[a] = range_start
-            continue
-        end
-
-        range = range_start:range_end
         # Find maximum absolute value in the given c_estimation range
         maximum = findmax(abs.(data_residuals_epoched[1, range, a]))[2]
         # Format latency to be from epoch start to the start of the c_range window
@@ -161,12 +157,10 @@ function build_c_evts_table(latencies_df::DataFrame, evts::DataFrame, cfg::RideC
     evts_s = @subset(evts, :event .== 'S')
     @assert size(latencies_df, 1) == size(evts_s, 1) "latencies_df and evts_s must have the same size"
     evts_c = copy(evts_s)
-    evts_c[!, :latency] .=
-        round.(
-            Int,
-            evts_s[!, :latency] + latencies_df[!, :latency] .+
-            (cfg.epoch_range[1] * cfg.sfreq),
-        )
+    evts_c[!, :latency] .= round.(
+        Int,
+        evts_s[!, :latency] + latencies_df[!, :latency] .+ (cfg.epoch_range[1] * cfg.sfreq),
+    )
     evts_c[!, :event] .= 'C'
     return evts_c
 end
@@ -424,7 +418,9 @@ function pad_erp_to_epoch_size(
     latency_from_epoch_start::Int64,
     cfg::RideConfig,
 )
-    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq)
+    epoch_length = round(Int, (cfg.epoch_range[2] - cfg.epoch_range[1]) * cfg.sfreq) + 1
+    @debug "Epoch length: $epoch_length, ERP length: $(length(erp)), Latency from epoch start: $latency_from_epoch_start"
+
     padding_front_length = max(round(Int, latency_from_epoch_start), 0)
     padding_front = zeros(Float64, padding_front_length)
 
@@ -511,4 +507,57 @@ function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideCo
     @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
 
     return data_epoched, evts_s, evts_r, evts, number_epochs
+end
+
+"""
+    tukey_window(data, window::Tuple)
+
+Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window on S component locked data before cross correlation to ensure the C component is only estimated in a specific range.
+
+# Arguments
+- data: Epoched data
+- window: The estimation window (in relation to S). In seconds.
+
+# Returns
+- Epochs with applied tukey window
+"""
+function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
+    # Calculate the number of samples for the tukey window based on the component range and sampling frequency
+    n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
+    t = tukey(n, 0.5)
+
+    @debug "Data size: $(size(data)), Tukey window size: $(length(t)), Epoch range: $τ_epoch, Component range: $τ_comp"
+    # Make sure tukey is shorter than the epoch length
+
+    # Pad the tukey window to match the epoch size
+    latency_from_epoch_start =
+        length(range(τ_epoch[1], step = 1/cfg.sfreq, stop = τ_comp[1]))
+    t = pad_erp_to_epoch_size(t, latency_from_epoch_start, cfg)
+
+    @debug "Tukey window size after padding: $(size(t)), Data size: $(size(data))"
+    t = reshape(t, 1, length(t), 1)  # Reshape to (1, samples, 1)
+
+    d = data .* t
+    return d
+end
+
+"""
+    filter_before(data, cfg::RideConfig)
+
+Apply a 20Hz low-pass filter to the data before the iterative decomposition.
+
+# Arguments
+- data: The input data
+- cfg: The RIDE configuration
+
+# Returns
+- The filtered data and the original data
+"""
+function filter_before(data, cfg::RideConfig)
+    if cfg.filtering[2]
+        filtered = dspfilter(vec(data), 20, cfg.sfreq)
+    else
+        filtered = deepcopy(data)
+    end
+    return filtered, data
 end

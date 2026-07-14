@@ -5,14 +5,14 @@ A struct holding the configuration values of the RIDE algorithm.
 
 # Fields
 - `sfreq::Int`: The sampling frequency of the data.
-- `s_range::Vector{Float64}`: The range of the S component. Usually determined
+- `s_range::Vector{Float64}`: The range around the S event onset of the S component. Usually determined
 through manual inspection of the data.
-- `r_range::Vector{Float64}`: The range of the R component. Usually determined
+- `r_range::Vector{Float64}`: The range around the R event onset of the R component. Usually determined
 through manual inspection of the data.
 - `c_range::Vector{Float64}`: The range of the C component. Usually determined
 through manual inspection of the data.
 - `c_estimation_range::Vector{Float64}`: The range used for the intial C 
-component latency estimation through peak picking.
+component latency estimation through peak picking. The range is relative to the stimulus onset and cannot exceed `epoch_range`.
 - formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)]: Vector containing formulas for the S, R, and C component (in this order!!!).
 Only used during the UnfoldRIDE algorithm.
 - `epoch_range::Vector{Float64}`: The range of one epoch centered around the stimulus onset.
@@ -27,8 +27,8 @@ and fixes a latency on encountering a convex xcorrelation result.
 competing peaks in the xcorrelation results. The peak closest to the previous latency is chosen.
 - `heuristic3_threshhold::Float64 = 0.9`: The threshold used for heuristic 3. If the peak is
 below this threshold * the maximum peak, it is considered a competing peak.
-- `filtering::Bool = true`: A flag to enable/disable filtering of the data before performing the 
-cross correlation.
+- `filtering::Tuple{Bool, Bool} = (true, true)`: A flag to enable/disable filtering of the data at 3Hz before performing the cross correlation (`filtering[1]`) and at 20Hz before decomposition iteration (`filtering[2]`). 
+Both are set to true by default, since these are the original RIDE defaults.
 - `save_interim_results::Bool = false`: A flag to enable/disable saving the interim results of
 each iteration of the RIDE algorithm.
 
@@ -40,13 +40,15 @@ cfg = RideConfig(
     s_range = [-0.2, 0.4],
     r_range = [0, 0.8],
     c_range = [-0.4, 0.4],
-    c_estimation_range = [-0.1, 0.9],
+    c_estimation_range = [0.1, 0.9],
+    tukey_window = (0.2, 0.6),
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,
     heuristic1 = true,
     heuristic2 = true,
     heuristic3 = true,
+    filtering::Tuple{Bool,Bool} = (true, true)
     save_interim_results = true,
 )
 ```
@@ -57,6 +59,7 @@ cfg = RideConfig(
     r_range::Vector{Float64}
     c_range::Vector{Float64}
     c_estimation_range::Vector{Float64}
+    tukey_window::Tuple{Float64,Float64}
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
     epoch_range::Vector{Float64}
     iteration_limit::Int = 4
@@ -65,7 +68,7 @@ cfg = RideConfig(
     heuristic2_rng = MersenneTwister(1234)
     heuristic3::Bool = true
     heuristic3_threshhold::Float64 = 0.9
-    filtering::Bool = true
+    filtering::Tuple{Bool,Bool} = (true, true)
     save_interim_results::Bool = false
 end
 

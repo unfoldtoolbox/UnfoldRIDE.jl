@@ -19,7 +19,8 @@ using RobustModels
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = (0.2, 0.8),
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -32,7 +33,7 @@ using RobustModels
         evts_without_c = @subset(evts, :event .!= 'C')
 
         #run the ride algorithm
-        r, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
+        r, _, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
         results = r[1]
         @test supertype(typeof(model)) == UnfoldModel{Float64}
     end
@@ -143,7 +144,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = (0.2, 0.8),
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -233,7 +235,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = (0.2, 0.8),
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -257,7 +260,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4],
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = (0.2, 0.8),
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,

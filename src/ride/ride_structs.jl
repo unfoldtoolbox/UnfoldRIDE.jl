@@ -13,6 +13,7 @@ through manual inspection of the data.
 through manual inspection of the data.
 - `c_estimation_range::Vector{Float64}`: The range used for the intial C 
 component latency estimation through peak picking. The range is relative to the stimulus onset and cannot exceed `epoch_range`.
+- `tukey_window::Vector{Float64}`: The range of the Tukey window used during the cross-correlation. The range is relative to the stimulus onset and cannot exceed `epoch_range`.
 - formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)]: Vector containing formulas for the S, R, and C component (in this order!!!).
 Only used during the UnfoldRIDE algorithm.
 - `epoch_range::Vector{Float64}`: The range of one epoch centered around the stimulus onset.
@@ -41,7 +42,7 @@ cfg = RideConfig(
     r_range = [0, 0.8],
     c_range = [-0.4, 0.4],
     c_estimation_range = [0.1, 0.9],
-    tukey_window = (0.2, 0.6),
+    tukey_window = [0.2, 0.6],
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1 + reaction_time)] # formulas used for S, R, and C component
     epoch_range = [-0.3, 1.6],
     iteration_limit = 5,
@@ -59,7 +60,7 @@ cfg = RideConfig(
     r_range::Vector{Float64}
     c_range::Vector{Float64}
     c_estimation_range::Vector{Float64}
-    tukey_window::Tuple{Float64,Float64}
+    tukey_window::Vector{Float64}
     formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component
     epoch_range::Vector{Float64}
     iteration_limit::Int = 4
@@ -111,7 +112,7 @@ only filled when the algorithm is run with the `save_interim_results` flag.
 - `s_erp_unpadded::Array{Float64}`: The ERP of the S component, unpadded.
 - `r_erp_unpadded::Array{Float64}`: The ERP of the R component, unpadded.
 - `c_erp_unpadded::Array{Float64}`: The ERP of the C component, unpadded.
-- `c_latencies::Array{Int64}`: The latencies of the C component from the stimulus 
+- `c_latencies::Array{Int64}`: The latencies of the C component 
 onset.
 """
 @with_kw mutable struct RideResults

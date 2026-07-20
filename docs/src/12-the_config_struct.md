@@ -1,6 +1,27 @@
 # The Config Struct
 
-When using UnfoldRIDE you will have to supply the function with a `RideConfig` struct. While the Docstring of this is already extensive, we will take the time here to explain every option in detail.
+When using UnfoldRIDE you will have to supply the function with a `RideConfig` struct. While the Docstring is already extensive, we will take the time here to explain every option in detail.
+
+```julia
+RideConfig(
+    sfreq::Int
+    s_range::Vector{Float64}
+    r_range::Vector{Float64}
+    c_range::Vector{Float64}
+    c_estimation_range::Vector{Float64}
+    tukey_window::Vector{Float64}
+    formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)]
+    epoch_range::Vector{Float64}
+    iteration_limit::Int = 4
+    heuristic1::Bool = true
+    heuristic2::Bool = true
+    heuristic2_rng = MersenneTwister(1234)
+    heuristic3::Bool = true
+    heuristic3_threshhold::Float64 = 0.9
+    filtering::Tuple{Bool,Bool} = (true, true)
+    save_interim_results::Bool = false
+)
+```
 
 ## `sfreq`
 The sample frequency of your data. Should be an Integer.

@@ -14,14 +14,14 @@ Additionaly, as opposed to the original [Matlab implementation of RIDE](https://
 If you have your ```data``` and your ```evts_without_c::DataFrame``` we can define a suitable configuration for ride and run the algorithm. The ranges for the individual components have to be determined through manual observation of the data.
 
 ```julia
-#config for ride algorithm
+#minimal config for ride algorithm
 cfg = RideConfig(
     sfreq = 100,
     s_range = [-0.1, 0.3],
     r_range = [0, 0.4],
     c_range = [-0.4, 0.4],
-    tukey_window = (0.3, 0.8),
-	formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)], c_estimation_range = [0.25, 0.55],
+    tukey_window = [0.3, 0.8],
+	c_estimation_range = [0.25, 0.55],
     epoch_range = [-0.1, 1]
 )
 

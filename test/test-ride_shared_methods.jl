@@ -75,6 +75,7 @@ include("../src/ride/ride_shared_methods.jl")
             s_range = [0, 0],
             r_range = [0, 0],
             c_estimation_range = [0.2, 1.2],
+            tukey_window = [0.2, 0.8],
             epoch_range = [-0.3, 1.6],
         )
         #identical epochs with perfect match at 100 and subpar match at 300

@@ -1,22 +1,42 @@
-ride_algorithm(Modus::Type{UnfoldMode}, data::Array{Float64}, evts, cfg::RideConfig) =
-    ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg)
+ride_algorithm(Modus::Type{UnfoldMode}, data::Array{Float64}, evts, cfg::RideConfig; kwargs...) =
+    ride_algorithm(Modus, reshape(data, (1, :)), evts, cfg; kwargs...)
 
 function ride_algorithm(
     Modus::Type{UnfoldMode},
     data::Array{Float64,2},
     evts,
-    cfg::RideConfig,
+    cfg::RideConfig;
+    kwargs...,
 )
     @debug "Running RIDE algorithm with cfg: $cfg"
     @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
     @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
             cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
+    # Check kwargs
+    fit_keys = (
+        :fit,
+        :contrasts,
+        :eventcolumn,
+        :solver,
+        :show_progress,
+        :eventfields,
+        :show_warnings,
+    )
+    fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
+
     ## data_preparation
     interim_results = Vector{Vector}()
     for i in axes(data, 1)
         push!(interim_results, Vector{RideResults}())
     end
+
+    # Apply 20Hz low-pass filter to the data before running the RIDE algorithm, if enabled in the configuration
+    # This is the original RIDE default, but can be disabled by the user if desired. According to Ouyang the filter is a bit arbitrary, but is used to reduce high frequency noise in the data before running the RIDE algorithm. We kept it here for consistency with the original RIDE implementation.
+    # During the last iteration the original data is used.
+    data, raw_data = filter_before(data, cfg)
+    data = reshape(data, (1, :))
+
     data_epoched, evts_s, evts_r, evts, number_epochs = prepare_epoch_info(data, evts, cfg)
     raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
     ##
@@ -29,10 +49,11 @@ function ride_algorithm(
             'R' => (cfg.formulas[2], firbasis(cfg.r_range, cfg.sfreq, "")),
         ],
         evts,
-        data,
+        data;
+        fit_kwargs...
     )
     c_table = coeftable(m)
-    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R'])
+    erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R']) # This only really makes sense when we use intercept only models; otherwise only the final model are valid results
     s_erp = erps['S']
     r_erp = erps['R']
     ##
@@ -107,17 +128,16 @@ function ride_algorithm(
 
 
     ## iteration start
-    model = nothing # init the model because we want the final model later and Julia only has local scope for loops
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
-        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg)
+        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
         ##
 
         ## update C latencies and apply heuristics
         for n in axes(data, 1)
             ## update C latencies via pattern matching
-            if cfg.filtering
+            if cfg.filtering[1]
                 residue[n, :] = dspfilter(residue[n, :], 5, cfg.sfreq)
             end
             c_latencies_df[n], xcorr, onset = unfold_pattern_matching(
@@ -178,6 +198,23 @@ function ride_algorithm(
         end
     end
 
+    # Do a last model fit with the final C latencies to get the final S, R and C ERPs; this one should always be done without the robust solver
+    evts_with_c = sort(vcat(evts, evts_c), [:latency])
+    raw_data = reshape(raw_data, (1, :))
+    fit_keys = (
+        :fit,
+        :contrasts,
+        :eventcolumn,
+        :show_progress,
+        :eventfields,
+        :show_warnings,
+    )
+    fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
+    @show "Running final model fit with final C latencies"
+    @show fit_kwargs
+    s_erp, r_erp, c_erp, _, model = unfold_decomposition(raw_data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
+
+
     results = Vector{RideResults}()
     for i in axes(data, 1)
         r = create_results(
@@ -192,6 +229,7 @@ function ride_algorithm(
         r.interim_results = interim_results[i]
         push!(results, r)
     end
-     events_tbl = sort(vcat(evts, evts_c), [:latency]) # return final events table with C latencies added
+
+    events_tbl = sort(vcat(evts, evts_c), [:latency]) # return final events table with C latencies added
     return results, events_tbl, model # Return both the full results and the final model
 end

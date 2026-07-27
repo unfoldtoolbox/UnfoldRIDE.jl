@@ -1,5 +1,6 @@
 include("./simulate_test_data.jl")
 using LinearAlgebra
+using RobustModels
 
 @testset "runner-unfold-ride" begin
     #simulate data
@@ -18,7 +19,8 @@ using LinearAlgebra
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = [0.2, 0.8],
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -33,6 +35,39 @@ using LinearAlgebra
         #run the ride algorithm
         r, _, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg)
         results = r[1]
+        @test supertype(typeof(model)) == UnfoldModel{Float64}
+    end
+
+    begin
+        #ENV["JULIA_DEBUG"] = "UnfoldRIDE"
+        #config for ride algorithm
+        cfg = RideConfig(
+            sfreq = 100,
+            s_range = [-0.2, 0.4],
+            r_range = [0, 0.8],
+            c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
+            c_estimation_range = [-0.1, 0.9],
+            tukey_window = [0.2, 0.8],
+            epoch_range = [-0.3, 1.6],
+            iteration_limit = 5,
+            heuristic1 = true,
+            heuristic2 = true,
+            heuristic3 = true,
+            save_interim_results = false,
+        )
+
+        _my_prepare = (x, y) -> Unfold.prepare(collect(x), y) |> Unfold.prepare_XTX
+
+        _my_solver!(Ĥ, data, Xt, R_xx, R_xy) = Ĥ .= coef(rlm(R_xx, Xt*data, MEstimator{TukeyLoss}(); initial_scale = :mad,method=:cg))
+
+        se_solver = (x, y) -> Unfold.solver_main(x, y; prepare_fun = _my_prepare,solver_fun! = _my_solver!, show_time = true,)
+
+        #remove the C events from the evts table, these will be estimated by the ride algorithm
+        evts_without_c = @subset(evts, :event .!= 'C')
+
+        #run the ride algorithm
+        r, _, model = ride_algorithm(UnfoldMode, data, evts_without_c, cfg; solver = se_solver)
+        #results = r[1]
         @test supertype(typeof(model)) == UnfoldModel{Float64}
     end
 
@@ -110,7 +145,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = [0.2, 0.8],
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -200,7 +236,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4], # change to -0.4 , 0.4 or something because it's attached to the latency of C
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = [0.2, 0.8],
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,
@@ -224,7 +261,8 @@ end
             s_range = [-0.2, 0.4],
             r_range = [0, 0.8],
             c_range = [-0.4, 0.4],
-            c_estimation_range = [-0.1, 0.9],
+            c_estimation_range = [0.2, 0.9],
+            tukey_window = [0.2, 0.8],
             epoch_range = [-0.3, 1.6],
             iteration_limit = 5,
             heuristic1 = true,

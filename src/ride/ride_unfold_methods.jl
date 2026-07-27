@@ -9,6 +9,27 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     )
     n, data_residuals_epoched = Unfold.drop_missing_epochs(evts_s, data_residuals_epoched)
 
+    #TODO: Implement tukey window here
+    for e in axes(data_residuals_epoched[:, :, :], 3)
+        #TODO: Fix the error of dimension mismatch here
+        @debug "Size of epoch $e: " size(data_residuals_epoched[:, :, e])
+
+        @debug "Size of after tukey window: " size(
+            tukey_window(
+                data_residuals_epoched[:, :, e],
+                cfg.epoch_range,
+                cfg.tukey_window,
+                cfg,
+            ),
+        )
+        data_residuals_epoched[:, :, e] = tukey_window(
+            data_residuals_epoched[:, :, e],
+            cfg.epoch_range,
+            cfg.tukey_window,
+            cfg,
+        )
+    end
+
     xc, result, onset = findxcorrpeak(data_residuals_epoched[1, :, :], c_erp)
 
     for (i, row) in enumerate(eachrow(latencies_df))
@@ -21,7 +42,7 @@ function unfold_pattern_matching(latencies_df, data_residuals_continous, c_erp, 
     return latencies_df, xc, onset
 end
 
-function unfold_decomposition(data, evts_with_c, cfg)
+function unfold_decomposition(data, evts_with_c, cfg; fit_kwargs)
     #unfold deconvolution; TODO: make the fit more general, i.e. let the user provide the model structure
     m = fit(
         UnfoldModel,
@@ -34,7 +55,8 @@ function unfold_decomposition(data, evts_with_c, cfg)
             ),
         ],
         evts_with_c,
-        data,
+        data;
+        fit_kwargs...
     )
     c_table = coeftable(m)
     erps = extract_erps_from_coeftable(c_table, size(data, 1), ['S', 'R', 'C'])

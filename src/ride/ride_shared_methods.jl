@@ -521,7 +521,7 @@ Wrapper for `DSP.window.tukey` to work on epoched data. Applies a tukey window o
 # Returns
 - Epochs with applied tukey window
 """
-function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
+function tukey_window(data, τ_epoch::Vector, τ_comp::Vector, cfg)
     # Calculate the number of samples for the tukey window based on the component range and sampling frequency
     n = length(range(τ_comp[1], step = 1/cfg.sfreq, stop = τ_comp[2]))
     t = tukey(n, 0.5)
@@ -539,4 +539,25 @@ function tukey_window(data, τ_epoch::Vector, τ_comp::Tuple, cfg)
 
     d = data .* t
     return d
+end
+
+"""
+    filter_before(data, cfg::RideConfig)
+
+Apply a 20Hz low-pass filter to the data before the iterative decomposition.
+
+# Arguments
+- data: The input data
+- cfg: The RIDE configuration
+
+# Returns
+- The filtered data and the original data
+"""
+function filter_before(data, cfg::RideConfig)
+    if cfg.filtering[2]
+        filtered = dspfilter(vec(data), 20, cfg.sfreq)
+    else
+        filtered = deepcopy(data)
+    end
+    return filtered, data
 end

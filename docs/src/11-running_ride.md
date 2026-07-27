@@ -1,45 +1,39 @@
 # Running Classic and Unfold RIDE
 
-You can find the code for this tutorial [here](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/simulate_variable_latency_sequence.jl), using this [Project.toml](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/code/Project.toml).
+## Data preparation
 
-For this tutorial, we use the data from the [data simulation example](./10-data_simulation.md).
-First we include the data simulation and add some additional noise to the data
+If you want to use Classic/UnfoldRIDE we assume that your data has already been properly preprocessed.
 
-```julia
-include("simulate_variable_latency_sequence.jl")
+> [!WARNING]
+> Your data must absolutely be preprocessed before using UnfoldRIDE; noisy data can have a drastic influence on variable component estimation.
 
-#add some noise to the simulated data
-data_noisy = copy(data)
-UnfoldSim.add_noise!(MersenneTwister(1234), PinkNoise(; noiselevel = 0.9), data_noisy)
-```
+Additionaly, as opposed to the original [Matlab implementation of RIDE](https://github.com/guangouyang/RIDE), UnfoldRIDE works on continuous data (instead of epoched data). Thus your input data should typically be of `size() = channel x timepoints`. 
 
-Now that we have our ```data_noisy``` and ```evts_without_c``` we can define a suitable configuration for ride and run the algorithm. The ranges for the individual components have to be determined through manual observation of the data.
+## Running Classic/ UnfoldRIDE
+
+If you have your ```data``` and your ```evts_without_c::DataFrame``` we can define a suitable configuration for ride and run the algorithm. The ranges for the individual components have to be determined through manual observation of the data.
 
 ```julia
-#run the ride algorithm on the simulated data
-begin
-    #config for ride algorithm
-    cfg = RideConfig(
-        #sfreq is the sampling frequency of the data
-        sfreq = 100,
-        #ranges for the individual components are determined by manually inspecting the data
-        s_range = [-0.1, 0.3],
-        r_range = [0, 0.4],
-        c_range = [-0.4, 0.4],
-        #the range in which the initial peak estimation for the C component is performed
-        formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)] # formulas used for S, R, and C component; if not specified these will default to `@formula(0~1)`
-        c_estimation_range = [0, 0.9],
-        #the range for one epoch
-        epoch_range = [-0.1, 1]
-    )
-    #run the ride algorithm
-    #We only have one channel, so we only need the first entry from the results vector.
-    resultsClassic = ride_algorithm(ClassicMode, data_noisy, evts_without_c, cfg)[1]
-    resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)[1]
-end
+#minimal config for ride algorithm
+cfg = RideConfig(
+    sfreq = 100,
+    s_range = [-0.1, 0.3],
+    r_range = [0, 0.4],
+    c_range = [-0.4, 0.4],
+    tukey_window = [0.3, 0.8],
+	c_estimation_range = [0.25, 0.55],
+    epoch_range = [-0.1, 1]
+)
+
+#run the ride algorithm
+#We only have one channel, so we only need the first entry from the results vector.
+resultsClassic = ride_algorithm(ClassicMode, data_noisy, evts_without_c, cfg)[1]
+resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)[1]
 ```
 
-Finally we can plot the results of both algorithm modes.
+And that's it. Now, we can plot the results of both algorithm modes.
+
+![Results for Classic and Unfold RIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/main/docs/images/classicAndUnfoldTutorialResults.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
 <details>
 <summary>Code used for Graph Creation</summary>
 
@@ -67,15 +61,3 @@ begin
 end
 ```
 </details>
-
-![Results for Classic and Unfold RIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/images/simulated_EEG_tutorial.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
-
-<!---
-TODO: add expected results
-Since this is the result of simulated data, we can easily calculate what output we should expect from the component definitions:
-```julia
-onset_stimulus = UniformOnset(width = 0, offset = 100)
-onset_c = UniformOnset(width = 30, offset = 10)
-onset_r = UniformOnset(width = 40, offset = 20)
-```
--->

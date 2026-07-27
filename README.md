@@ -11,7 +11,7 @@
 [![All Contributors](https://img.shields.io/github/all-contributors/unfoldtoolbox/UnfoldRIDE.jl?labelColor=5e1ec7&color=c0ffee&style=flat-square)](#contributors)
 [![BestieTemplate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JuliaBesties/BestieTemplate.jl/main/docs/src/assets/badge.json)](https://github.com/JuliaBesties/BestieTemplate.jl)
 
-A re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.htm) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
+A re-implementation of the [RIDE](https://cns.hkbu.edu.hk/RIDE.html) algorithm in Julia with an extension to replace the RIDEs iterative decomposition with an [Unfold](https://github.com/unfoldtoolbox/Unfold.jl) deconvolution.
 
 > [!WARNING]
 > This package is still in early development and should be seen as a beta version. While the algorithms seem to work in simulations we have seen some concerning results in real data applications.

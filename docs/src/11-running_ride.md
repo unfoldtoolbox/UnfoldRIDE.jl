@@ -33,7 +33,7 @@ resultsUnfold = ride_algorithm(UnfoldMode, data_noisy, evts_without_c, cfg)[1]
 
 And that's it. Now, we can plot the results of both algorithm modes.
 
-![Results for Classic and Unfold RIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/initial_commit/docs/images/simulated_EEG_tutorial.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
+![Results for Classic and Unfold RIDE](https://github.com/unfoldtoolbox/UnfoldRIDE.jl/blob/main/docs/images/classicAndUnfoldTutorialResults.png "Results of running Classic and Unfold RIDE on the simulated dataset.")
 <details>
 <summary>Code used for Graph Creation</summary>
 

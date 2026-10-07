@@ -210,8 +210,8 @@ function ride_algorithm(
         :show_warnings,
     )
     fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
-    @show "Running final model fit with final C latencies"
-    @show fit_kwargs
+    @debug "Running final model fit with final C latencies"
+    @debug fit_kwargs
     s_erp, r_erp, c_erp, _, model = unfold_decomposition(raw_data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
 
 

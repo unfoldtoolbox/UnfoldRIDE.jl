@@ -34,7 +34,7 @@ cfg = RideConfig(
     s_range = [-0.1, 0.3],
     r_range = [0, 0.4],
     c_range = [-0.4, 0.4],
-    tukey_window = (0.3, 0.8), # Defines the range in which a C component can be found; in relation to S onset
+    tukey_window = [0.3, 0.8], # Defines the range in which a C component can be found; in relation to S onset
 	formulas = [@formula(0 ~ 1), @formula(0 ~ 1), @formula(0 ~ 1)], # Formulas for S-C-R in UnfoldRIDE; ignored in ClassicRIDE
     #the range in which the initial peak estimation for the C component is performed
     c_estimation_range = [0.25, 0.55],

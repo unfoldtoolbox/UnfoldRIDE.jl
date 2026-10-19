@@ -20,7 +20,7 @@ include("./ride/ride_unfold_methods.jl")
 include("./ride/ride_shared_methods.jl")
 
 # Export functions
-export ride_algorithm, ride_algorithm_unfold
+export ride_algorithm
 
 # Export types
 export RideConfig, ClassicMode, UnfoldMode

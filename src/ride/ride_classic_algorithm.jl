@@ -24,7 +24,7 @@ function ride_algorithm(
 
     @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
     @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
-            cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
+        cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
     ## data_preparation
 
@@ -34,9 +34,9 @@ function ride_algorithm(
     data, raw_data = filter_before(data, cfg)
 
     data_reshaped = reshape(data, (1, :))
-    data_epoched, evts_s, evts_r, evts, number_epochs =
+    data_epoched, evts_s, evts_r, number_epochs =
         prepare_epoch_info(data_reshaped, evts, cfg)
-    raw_erp = mean(data_epoched, dims = 3)[1, :, 1]
+    raw_erp = mean(data_epoched, dims=3)[1, :, 1]
     interim_results = Vector{RideResults}()
     ##
 
@@ -49,15 +49,15 @@ function ride_algorithm(
     ## initial erp calculation
     #calculate initial  erp of S
     data_epoched_s, data_epoched_s_times =
-        Unfold.epoch(data = data_reshaped, tbl = evts_s, τ = cfg.s_range, sfreq = cfg.sfreq)
+        Unfold.epoch(data=data_reshaped, tbl=evts_s, τ=cfg.s_range, sfreq=cfg.sfreq)
     n, data_epoched_s = Unfold.drop_missing_epochs(evts_s, data_epoched_s)
-    s_erp = median(data_epoched_s, dims = 3)
+    s_erp = median(data_epoched_s, dims=3)
 
     #calculate initial erp of R
     data_epoched_r, data_epoched_r_times =
-        Unfold.epoch(data = data_reshaped, tbl = evts_r, τ = cfg.r_range, sfreq = cfg.sfreq)
+        Unfold.epoch(data=data_reshaped, tbl=evts_r, τ=cfg.r_range, sfreq=cfg.sfreq)
     n, data_epoched_r = Unfold.drop_missing_epochs(evts_r, data_epoched_r)
-    r_erp = median(data_epoched_r, dims = 3)
+    r_erp = median(data_epoched_r, dims=3)
 
     ## save interim results
     if cfg.save_interim_results
@@ -90,7 +90,7 @@ function ride_algorithm(
                 [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
                 cfg.sfreq,
             )
-            c_erp = median(data_subtracted_s_and_r, dims = 3)
+            c_erp = median(data_subtracted_s_and_r, dims=3)
             #calculate erp of S
             data_subtracted_c_and_r = subtract_to_data_epoched(
                 data_reshaped,
@@ -99,7 +99,7 @@ function ride_algorithm(
                 [(evts_c, c_erp, c_range_adj), (evts_r, r_erp, cfg.r_range)],
                 cfg.sfreq,
             )
-            s_erp = median(data_subtracted_c_and_r, dims = 3)
+            s_erp = median(data_subtracted_c_and_r, dims=3)
             #calculate erp of R
             data_subtracted_s_and_c = subtract_to_data_epoched(
                 data_reshaped,
@@ -108,7 +108,7 @@ function ride_algorithm(
                 [(evts_s, s_erp, cfg.s_range), (evts_c, c_erp, c_range_adj)],
                 cfg.sfreq,
             )
-            r_erp = median(data_subtracted_s_and_c, dims = 3)
+            r_erp = median(data_subtracted_s_and_c, dims=3)
         end
         ##
 
@@ -120,13 +120,19 @@ function ride_algorithm(
             cfg.sfreq,
         )
         if cfg.filtering[1] # TODO: Check if this is correct; also check for filter artefacts
-            data_subtracted_s_and_r = dspfilter(data_subtracted_s_and_r[1, :], 5, cfg.sfreq)
+            data_subtracted_s_and_r = filter_with_padding(data_subtracted_s_and_r[1, :], 5, cfg.sfreq)
+
+            c_erp_filtered = filter_with_padding(c_erp[1, :, 1], 5, cfg.sfreq) # filter c_erp to be used as template for pattern matching
+        else
+            c_erp_filtered = c_erp[1, :, 1]
         end
+
+        
         data_epoched_subtracted_s_and_r, n = Unfold.epoch(
-            data = data_subtracted_s_and_r,
-            tbl = evts_s,
-            τ = cfg.epoch_range,
-            sfreq = cfg.sfreq,
+            data=data_subtracted_s_and_r,
+            tbl=evts_s,
+            τ=cfg.epoch_range,
+            sfreq=cfg.sfreq,
         )
 
         @debug "Size before dropping missing epochs: " size(data_epoched_subtracted_s_and_r)
@@ -157,7 +163,7 @@ function ride_algorithm(
         end
 
         xcorr, m, onset =
-            findxcorrpeak(data_epoched_subtracted_s_and_r[1, :, :], c_erp[1, :, 1])
+            findxcorrpeak(data_epoched_subtracted_s_and_r[1, :, :], c_erp_filtered[1, :, 1])
         c_latencies = reshape(m, (1, :))
         for (i, row) in enumerate(eachrow(c_latencies_df))
             if (row.fixed)
@@ -169,8 +175,8 @@ function ride_algorithm(
 
         ## heuristics
         if cfg.heuristic1 &&
-           !isnothing(c_latencies_df_prev) &&
-           !isnothing(c_latencies_df_prev_prev)
+            !isnothing(c_latencies_df_prev) &&
+            !isnothing(c_latencies_df_prev_prev)
             heuristic1_monoton_latency_changes!(
                 c_latencies_df,
                 c_latencies_df_prev,
@@ -192,8 +198,8 @@ function ride_algorithm(
                 c_latencies_df,
                 c_latencies_df_prev,
                 xcorr;
-                equality_threshold = cfg.heuristic3_threshhold,
-                onset = onset,
+                equality_threshold=cfg.heuristic3_threshhold,
+                onset=onset,
             )
         end
 
@@ -229,7 +235,7 @@ function ride_algorithm(
         [(evts_s, s_erp, cfg.s_range), (evts_r, r_erp, cfg.r_range)],
         cfg.sfreq,
     )
-    c_erp = mean(data_subtracted_s_and_r, dims = 3)
+    c_erp = mean(data_subtracted_s_and_r, dims=3)
     #calculate erp of S
     data_subtracted_c_and_r = subtract_to_data_epoched(
         data_reshaped,
@@ -238,7 +244,7 @@ function ride_algorithm(
         [(evts_c, c_erp, c_range_adj), (evts_r, r_erp, cfg.r_range)],
         cfg.sfreq,
     )
-    s_erp = mean(data_subtracted_c_and_r, dims = 3)
+    s_erp = mean(data_subtracted_c_and_r, dims=3)
     #calculate erp of R
     data_subtracted_s_and_c = subtract_to_data_epoched(
         data_reshaped,
@@ -247,7 +253,7 @@ function ride_algorithm(
         [(evts_s, s_erp, cfg.s_range), (evts_c, c_erp, c_range_adj)],
         cfg.sfreq,
     )
-    r_erp = mean(data_subtracted_s_and_c, dims = 3)
+    r_erp = mean(data_subtracted_s_and_c, dims=3)
     ##
 
     results = create_results(

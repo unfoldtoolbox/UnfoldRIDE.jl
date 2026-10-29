@@ -11,7 +11,7 @@ function ride_algorithm(
     @debug "Running RIDE algorithm with cfg: $cfg"
     @assert cfg.s_range[1] >= cfg.epoch_range[1] && cfg.s_range[2] <= cfg.epoch_range[2] "S range must be within the epoch range"
     @assert cfg.c_estimation_range[1] >= cfg.epoch_range[1] &&
-            cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
+        cfg.c_estimation_range[2] <= cfg.epoch_range[2] "C estimation range must be within the epoch range"
 
     # Check kwargs
     fit_keys = (
@@ -37,8 +37,8 @@ function ride_algorithm(
     data, raw_data = filter_before(data, cfg)
     data = reshape(data, (1, :))
 
-    data_epoched, evts_s, evts_r, evts, number_epochs = prepare_epoch_info(data, evts, cfg)
-    raw_erp = mean(data_epoched, dims = 3)[:, :, 1]
+    data_epoched, evts_s, evts_r, number_epochs = prepare_epoch_info(data, evts, cfg)
+    raw_erp = mean(data_epoched, dims=3)[:, :, 1]
     ##
 
     ## initial unfold deconvolution
@@ -59,7 +59,7 @@ function ride_algorithm(
     ##
 
     ## initial residue calculation (data minus S and R)
-    yhat = predict(m, overlap = true)
+    yhat = predict(m, overlap=true)
     y = data
     residuals_without_SR = Unfold._residuals(UnfoldModel, yhat, y)
     ##
@@ -71,14 +71,14 @@ function ride_algorithm(
 
     ## calculate first c_erp from initial latencies and residue/data
     data_residuals_c_epoched, times = Unfold.epoch(
-        data = residuals_without_SR,
-        tbl = evts_c,
-        τ = c_range_adjusted(cfg.c_range),
-        sfreq = cfg.sfreq,
+        data=residuals_without_SR,
+        tbl=evts_c,
+        τ=c_range_adjusted(cfg.c_range),
+        sfreq=cfg.sfreq,
     )
     n, data_residuals_c_epoched =
         Unfold.drop_missing_epochs(evts_c, data_residuals_c_epoched)
-    c_erp = median(data_residuals_c_epoched, dims = 3)
+    c_erp = median(data_residuals_c_epoched, dims=3)
     c_erp = c_erp[:, :, 1]
     ##
 
@@ -131,19 +131,23 @@ function ride_algorithm(
     for i in range(1, cfg.iteration_limit)
         ## decompose data into S, R and C components using the current C latencies
         evts_with_c = sort(vcat(evts, evts_c), [:latency])
-        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
+        s_erp, r_erp, c_erp, residue, model = unfold_decomposition(data, evts_with_c, cfg; fit_kwargs=fit_kwargs)
         ##
 
         ## update C latencies and apply heuristics
         for n in axes(data, 1)
             ## update C latencies via pattern matching
             if cfg.filtering[1]
-                residue[n, :] = dspfilter(residue[n, :], 5, cfg.sfreq)
+                residue[n, :] = filter_with_padding(residue[n, :], 5, cfg.sfreq)
+
+                c_erp_filtered = filter_with_padding(c_erp[n, :], 5, cfg.sfreq) # filter c_erp to be used as template for pattern matching
+            else
+                c_erp_filtered = c_erp[n, :]
             end
             c_latencies_df[n], xcorr, onset = unfold_pattern_matching(
                 c_latencies_df[n],
                 residue[n, :],
-                c_erp[n, :],
+                c_erp_filtered[n, :],
                 evts_s,
                 cfg,
             )
@@ -172,8 +176,8 @@ function ride_algorithm(
                     c_latencies_df[n],
                     c_latencies_df_prev[n],
                     xcorr;
-                    equality_threshold = cfg.heuristic3_threshhold,
-                    onset = onset,
+                    equality_threshold=cfg.heuristic3_threshhold,
+                    onset=onset,
                 )
             end
         end
@@ -212,7 +216,7 @@ function ride_algorithm(
     fit_kwargs = (; (k => v for (k, v) in pairs(kwargs) if k ∈ fit_keys)...)
     @debug "Running final model fit with final C latencies"
     @debug fit_kwargs
-    s_erp, r_erp, c_erp, _, model = unfold_decomposition(raw_data, evts_with_c, cfg; fit_kwargs = fit_kwargs)
+    s_erp, r_erp, c_erp, _, model = unfold_decomposition(raw_data, evts_with_c, cfg; fit_kwargs=fit_kwargs)
 
 
     results = Vector{RideResults}()

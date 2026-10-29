@@ -501,13 +501,14 @@ function prepare_epoch_info(data::Array{Float64,2}, evts::DataFrame, cfg::RideCo
     evts_s = evts_s[1:number_epochs, :]
     evts_r = evts_r[1:number_epochs, :]
 
-    # trim original evts to match expected number of rows (S+R per epoch)
+    #= trim original evts to match expected number of rows (S+R per epoch; seems we need this because of the drop missing)
     while size(evts_temp, 1) > number_epochs * 2
-        #deleteat!(evts_temp, size(evts_temp, 1))
+        deleteat!(evts_temp, size(evts_temp, 1))
     end
-    @assert size(evts, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
-
-    return data_epoched, evts_s, evts_r, evts, number_epochs
+    @assert size(evts_temp, 1) == number_epochs * 2 "Size of evts is $(size(evts,1)) but should be $(number_epochs*2)"
+    =#
+    
+    return data_epoched, evts_s, evts_r, number_epochs
 end
 
 """
@@ -543,6 +544,122 @@ function tukey_window(data, τ_epoch::Vector, τ_comp::Vector, cfg)
 end
 
 """
+    filter_with_padding(data, filter_at, sfreq)
+
+Filter the data with a lowpass filter at the given frequency and sampling rate.
+Zero-pads the data before filtering to avoid edge artifacts.
+
+# Arguments
+- data: The input data to filter
+- filter_at: The cutoff frequency for the lowpass filter
+- sfreq: The sampling frequency
+
+# Returns
+- The filtered data
+"""
+function filter_with_padding(data::Vector{Float64}, filter_at::Int64, sfreq::Int64)
+    # Calculate padding needed (at least 3x filter period for good edge handling)
+    padding_length = max(round(Int, 3 * sfreq / filter_at), 10)
+    
+    # Zero padding at both ends
+    padded_data = vcat(zeros(padding_length), data, zeros(padding_length))
+    
+    # Apply filter
+    filtered_padded = dspfilter(padded_data, filter_at, sfreq)
+    
+    # Remove padding and return the filtered data of original length
+    return filtered_padded[padding_length+1:end-padding_length]
+end
+
+"""
+    filter_with_padding(data, kernel, filter_at, sfreq)
+
+Filter both data and template (kernel) with the same lowpass filter to ensure consistency.
+Zero-pads both data and template before filtering to avoid edge artifacts.
+
+# Arguments
+- data: The input data to filter
+- kernel: The template/kernel to filter (e.g., c_erp)
+- filter_at: The cutoff frequency for the lowpass filter
+- sfreq: The sampling frequency
+
+# Returns
+- Tuple of (filtered_data, filtered_kernel)
+"""
+function filter_with_padding(
+    data::Vector{Float64},
+    kernel::Vector{Float64},
+    filter_at::Int64,
+    sfreq::Int64,
+)
+    # Calculate padding needed (at least 3x filter period for good edge handling)
+    padding_length = max(round(Int, 3 * sfreq / filter_at), 10)
+    
+    # Zero padding at both ends for data
+    padded_data = vcat(zeros(padding_length), data, zeros(padding_length))
+    
+    # Zero padding at both ends for kernel
+    padded_kernel = vcat(zeros(padding_length), kernel, zeros(padding_length))
+    
+    # Apply filter to both
+    filtered_padded_data = dspfilter(padded_data, filter_at, sfreq)
+    filtered_padded_kernel = dspfilter(padded_kernel, filter_at, sfreq)
+    
+    # Remove padding and return filtered data and kernel of original length
+    return (
+        filtered_padded_data[padding_length+1:end-padding_length],
+        filtered_padded_kernel[padding_length+1:end-padding_length],
+    )
+end
+
+"""
+    filter_data_and_template_for_xcorr(data, template, cfg)
+
+Filter both data and template with the same 5Hz lowpass filter if cfg.filtering[1] is true.
+This ensures consistency between data and template during cross-correlation.
+
+# Arguments
+- data: The input data to filter
+- template: The template/kernel to filter (e.g., c_erp)
+- cfg: The RIDE configuration
+
+# Returns
+- Tuple of (filtered_data, filtered_template)
+"""
+function filter_data_and_template_for_xcorr(
+    data::Vector{Float64},
+    template::Vector{Float64},
+    cfg::RideConfig,
+)
+    if cfg.filtering[1]
+        return filter_with_padding(data, template, 5, cfg.sfreq)
+    else
+        return (data, template)
+    end
+end
+
+"""
+    filter_data_for_initial_estimation(data, cfg)
+
+Filter data with the same 5Hz lowpass filter used for cross-correlation during initial C latency estimation.
+Zero-pads the data before filtering to avoid edge artifacts.
+
+# Arguments
+- data: The input data to filter
+- cfg: The RIDE configuration
+
+# Returns
+- The filtered data
+"""
+function filter_data_for_initial_estimation(data::Vector{Float64}, cfg::RideConfig)
+    if cfg.filtering[1]
+        return filter_with_padding(data, 5, cfg.sfreq)
+    else
+        return data
+    end
+end
+
+"""
     filter_before(data, cfg::RideConfig)
 
 Apply a 20Hz low-pass filter to the data before the iterative decomposition.
@@ -556,7 +673,7 @@ Apply a 20Hz low-pass filter to the data before the iterative decomposition.
 """
 function filter_before(data, cfg::RideConfig)
     if cfg.filtering[2]
-        filtered = dspfilter(vec(data), 20, cfg.sfreq)
+        filtered = filter_with_padding(vec(data), 20, cfg.sfreq)
     else
         filtered = deepcopy(data)
     end
